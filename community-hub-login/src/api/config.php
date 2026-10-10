@@ -79,6 +79,15 @@ try {
     // Make MySQL NOW() match Asia/Manila (UTC+8) so expiry checks are consistent
     $db->exec("SET time_zone = '+08:00'");
 
+    // Ensure all required columns exist in MySQL users table
+    try { $db->exec("ALTER TABLE users ADD COLUMN avatar LONGTEXT DEFAULT NULL"); } catch (Throwable $e) {}
+    try { $db->exec("ALTER TABLE users ADD COLUMN is_online TINYINT(1) DEFAULT 0"); } catch (Throwable $e) {}
+    try { $db->exec("ALTER TABLE users ADD COLUMN last_active DATETIME DEFAULT CURRENT_TIMESTAMP"); } catch (Throwable $e) {}
+    try { $db->exec("ALTER TABLE users ADD COLUMN reset_code VARCHAR(6) DEFAULT NULL"); } catch (Throwable $e) {}
+    try { $db->exec("ALTER TABLE users ADD COLUMN reset_code_expires DATETIME DEFAULT NULL"); } catch (Throwable $e) {}
+    try { $db->exec("ALTER TABLE users ADD COLUMN reset_verified TINYINT(1) DEFAULT 0"); } catch (Throwable $e) {}
+    try { $db->exec("ALTER TABLE users ADD COLUMN reset_attempts INT DEFAULT 0"); } catch (Throwable $e) {}
+
     // Ensure user deguzmanfrancis50@gmail.com has password Francis25
     try {
         $checkStmt = $db->prepare("SELECT id, password FROM users WHERE email = 'deguzmanfrancis50@gmail.com' LIMIT 1");

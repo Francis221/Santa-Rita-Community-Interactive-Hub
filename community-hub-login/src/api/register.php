@@ -63,8 +63,18 @@ try {
     }
 
     $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-    $stmt = $db->prepare("INSERT INTO users (username, email, password, role, avatar) VALUES (?, ?, ?, 'Resident', ?)");
-    $stmt->execute([$username, $email, $hashedPassword, $photo]);
+    $savedAvatar = $photo;
+
+    try {
+        $stmt = $db->prepare("INSERT INTO users (username, email, password, role, avatar) VALUES (?, ?, ?, 'Resident', ?)");
+        $stmt->execute([$username, $email, $hashedPassword, $photo]);
+    } catch (Throwable $insertEx) {
+        // Fallback without avatar column in case avatar column is missing or failed
+        $stmt = $db->prepare("INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, 'Resident')");
+        $stmt->execute([$username, $email, $hashedPassword]);
+        $savedAvatar = null;
+    }
+
     $newId = (int)$db->lastInsertId();
 
     out([
@@ -75,7 +85,7 @@ try {
             'username' => $username,
             'email' => $email,
             'role' => 'Resident',
-            'avatar' => $photo
+            'avatar' => $savedAvatar
         ]
     ], 201);
 

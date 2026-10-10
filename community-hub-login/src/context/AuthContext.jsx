@@ -137,7 +137,10 @@ export function AuthProvider({ children }) {
       }
 
       if (res.ok) {
-        return { success: true };
+        try {
+          await DB.fetchUsersFromApi();
+        } catch (e) {}
+        return { success: true, user: data?.user };
       }
       return { success: false, error: data.error || data.message || 'Registration failed' };
     } catch (err) {
