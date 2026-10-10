@@ -44,7 +44,10 @@ if ($action === 'heartbeat') {
     }
 
     // Auto-mark users inactive for > 3 minutes as offline
-    $db->exec("UPDATE users SET is_online = 0 WHERE last_active < NOW() - INTERVAL 3 MINUTE AND is_online = 1");
+    $threshold = date('Y-m-d H:i:s', strtotime('-3 minutes'));
+    try {
+        $db->prepare("UPDATE users SET is_online = 0 WHERE last_active < ? AND is_online = 1")->execute([$threshold]);
+    } catch (Throwable $e) {}
 
     // Get current online count
     $onlineCount = (int)$db->query("SELECT COUNT(*) FROM users WHERE is_online = 1")->fetchColumn();
@@ -82,7 +85,10 @@ if ($action === 'heartbeat') {
 } else {
     // Action 'status' - Fetch all users and real-time online count
     // Auto-clean stale online sessions first
-    $db->exec("UPDATE users SET is_online = 0 WHERE last_active < NOW() - INTERVAL 3 MINUTE AND is_online = 1");
+    $threshold = date('Y-m-d H:i:s', strtotime('-3 minutes'));
+    try {
+        $db->prepare("UPDATE users SET is_online = 0 WHERE last_active < ? AND is_online = 1")->execute([$threshold]);
+    } catch (Throwable $e) {}
 
     $stmt = $db->query('SELECT id, username, email, role, avatar, is_online, last_active FROM users ORDER BY id DESC');
     $users = $stmt->fetchAll();

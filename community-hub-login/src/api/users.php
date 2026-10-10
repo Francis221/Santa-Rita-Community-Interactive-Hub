@@ -29,7 +29,10 @@ try {
     } catch (Throwable $e) {}
 
     // Auto-mark inactive users (>3 mins) as offline
-    $db->exec("UPDATE users SET is_online = 0 WHERE last_active < NOW() - INTERVAL 3 MINUTE AND is_online = 1");
+    $threshold = date('Y-m-d H:i:s', strtotime('-3 minutes'));
+    try {
+        $db->prepare("UPDATE users SET is_online = 0 WHERE last_active < ? AND is_online = 1")->execute([$threshold]);
+    } catch (Throwable $e) {}
 
     $stmt = $db->query('SELECT id, username, email, role, avatar, COALESCE(is_online, 0) as is_online, last_active FROM users ORDER BY id DESC');
     $users = $stmt->fetchAll();
