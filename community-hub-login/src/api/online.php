@@ -12,14 +12,16 @@ try {
         if ($checkCol->rowCount() == 0) {
             $db->exec("ALTER TABLE users ADD COLUMN is_online TINYINT(1) DEFAULT 0");
         }
-    } catch (Throwable $e) {}
+    } catch (Throwable $e) {
+    }
 
     try {
         $checkActive = $db->query("SHOW COLUMNS FROM users LIKE 'last_active'");
         if ($checkActive->rowCount() == 0) {
             $db->exec("ALTER TABLE users ADD COLUMN last_active DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
         }
-    } catch (Throwable $e) {}
+    } catch (Throwable $e) {
+    }
 } catch (Throwable $e) {
     error_log('Online table schema setup notice: ' . $e->getMessage());
 }
@@ -27,7 +29,7 @@ try {
 $action = $_GET['action'] ?? $_POST['action'] ?? 'status';
 $currentUserId = $_SESSION['user_id'] ?? null;
 $now = date('Y-m-d H:i:s');
-$threshold = date('Y-m-d H:i:s', time() - 30); // Users inactive for 30s become offline
+$threshold = date('Y-m-d H:i:s', time() - 300); // Users inactive for 5 minutes become offline
 
 // Handle Heartbeat (Keep Active User Online)
 if ($action === 'heartbeat') {
@@ -37,7 +39,8 @@ if ($action === 'heartbeat') {
         $uStmt = $db->prepare('SELECT id FROM users WHERE username = ? OR email = ? LIMIT 1');
         $uStmt->execute([$username, $username]);
         $uRow = $uStmt->fetch();
-        if ($uRow) $currentUserId = $uRow['id'];
+        if ($uRow)
+            $currentUserId = $uRow['id'];
     }
 
     if ($currentUserId) {
@@ -48,10 +51,11 @@ if ($action === 'heartbeat') {
     // Auto-mark users inactive for > 30 seconds as offline
     try {
         $db->prepare("UPDATE users SET is_online = 0 WHERE last_active < ? AND is_online = 1")->execute([$threshold]);
-    } catch (Throwable $e) {}
+    } catch (Throwable $e) {
+    }
 
     // Get current online count
-    $onlineCount = (int)$db->query("SELECT COUNT(*) FROM users WHERE is_online = 1")->fetchColumn();
+    $onlineCount = (int) $db->query("SELECT COUNT(*) FROM users WHERE is_online = 1")->fetchColumn();
 
     out([
         'success' => true,
@@ -68,7 +72,8 @@ if ($action === 'heartbeat') {
         $uStmt = $db->prepare('SELECT id FROM users WHERE username = ? LIMIT 1');
         $uStmt->execute([$targetName]);
         $uRow = $uStmt->fetch();
-        if ($uRow) $targetId = $uRow['id'];
+        if ($uRow)
+            $targetId = $uRow['id'];
     }
 
     if ($targetId) {
@@ -76,7 +81,7 @@ if ($action === 'heartbeat') {
         $tStmt->execute([$now, $targetId]);
     }
 
-    $onlineCount = (int)$db->query("SELECT COUNT(*) FROM users WHERE is_online = 1")->fetchColumn();
+    $onlineCount = (int) $db->query("SELECT COUNT(*) FROM users WHERE is_online = 1")->fetchColumn();
 
     out([
         'success' => true,
@@ -87,19 +92,21 @@ if ($action === 'heartbeat') {
     if ($currentUserId) {
         try {
             $db->prepare('UPDATE users SET is_online = 1, last_active = ? WHERE id = ?')->execute([$now, $currentUserId]);
-        } catch (Throwable $e) {}
+        } catch (Throwable $e) {
+        }
     }
 
     // Auto-clean stale online sessions first
     try {
         $db->prepare("UPDATE users SET is_online = 0 WHERE last_active < ? AND is_online = 1")->execute([$threshold]);
-    } catch (Throwable $e) {}
+    } catch (Throwable $e) {
+    }
 
     $stmt = $db->query('SELECT id, username, email, role, avatar, is_online, last_active FROM users ORDER BY id DESC');
     $users = $stmt->fetchAll();
 
-    $onlineUsers = array_filter($users, function($u) {
-        return (int)$u['is_online'] === 1;
+    $onlineUsers = array_filter($users, function ($u) {
+        return (int) $u['is_online'] === 1;
     });
 
     $count = count($onlineUsers);
@@ -107,14 +114,14 @@ if ($action === 'heartbeat') {
     out([
         'success' => true,
         'online_count' => $count,
-        'users' => array_map(function($u) {
+        'users' => array_map(function ($u) {
             return [
-                'id' => (int)$u['id'],
+                'id' => (int) $u['id'],
                 'username' => $u['username'],
                 'email' => $u['email'],
                 'role' => $u['role'] ?? 'Resident',
                 'avatar' => $u['avatar'],
-                'is_online' => (bool)$u['is_online'],
+                'is_online' => (bool) $u['is_online'],
                 'last_active' => $u['last_active']
             ];
         }, $users)

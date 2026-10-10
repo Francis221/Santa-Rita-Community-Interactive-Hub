@@ -34,8 +34,8 @@ try {
         } catch (Throwable $e) {}
     }
 
-    // Auto-mark inactive users (>3 mins) as offline
-    $threshold = date('Y-m-d H:i:s', strtotime('-3 minutes'));
+    // Auto-mark inactive users (>5 mins) as offline
+    $threshold = date('Y-m-d H:i:s', time() - 300);
     try {
         $db->prepare("UPDATE users SET is_online = 0 WHERE last_active < ? AND is_online = 1")->execute([$threshold]);
     } catch (Throwable $e) {}
