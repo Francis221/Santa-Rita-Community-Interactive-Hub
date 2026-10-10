@@ -73,7 +73,7 @@ export default function App() {
             <Route path="/announcements" element={<AnnouncementsPage />} />
             <Route path="/events" element={<EventsPage />} />
             <Route path="/officials" element={<Officials />} />
-            <Route path="/reports" element={<ProtectedReportRoute />} />
+            <Route path="/reports" element={<Reports />} />
             <Route path="/request-document" element={<RequestDocument />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/chats" element={<Chats />} />

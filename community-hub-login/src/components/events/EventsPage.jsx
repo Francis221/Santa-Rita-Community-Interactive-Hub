@@ -3,9 +3,12 @@ import { DB } from "../../services/db";
 import EventCard from "./EventCard";
 import AddEventModal from "./AddEventModal";
 import { Calendar, Plus } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
 import "./events.css";
 
 export default function EventsPage() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "Admin";
   const [events, setEvents] = useState([]);
   const [showModal, setShowModal] = useState(false);
 
@@ -28,10 +31,12 @@ export default function EventsPage() {
           <p>Upcoming sports leagues, health checkups, and youth activities in Sta. Rita Central.</p>
         </div>
 
-        <button className="btn-add-event" onClick={() => setShowModal(true)}>
-          <Plus size={18} />
-          <span>Add Event</span>
-        </button>
+        {isAdmin && (
+          <button className="btn-add-event" onClick={() => setShowModal(true)}>
+            <Plus size={18} />
+            <span>Add Event</span>
+          </button>
+        )}
       </div>
 
       {events.length === 0 ? (

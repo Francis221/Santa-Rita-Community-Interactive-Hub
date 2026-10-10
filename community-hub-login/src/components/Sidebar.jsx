@@ -44,13 +44,7 @@ export default function Sidebar() {
     navigate('/login');
   };
 
-  // Only Admin accounts see Reports
-  const visibleLinks = sidebarLinks.filter((link) => {
-    if (link.id === "reports" && user?.role !== "Admin") {
-      return false;
-    }
-    return true;
-  });
+  const visibleLinks = sidebarLinks;
 
   return (
     <>

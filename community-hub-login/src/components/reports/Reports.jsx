@@ -5,14 +5,25 @@ import EditReportModal from "./EditReportModal";
 import SettleReportModal from "./SettleReportModal";
 import RequestDocsModal from "./RequestDocsModal";
 import MonthlyReportsChart from "./MonthlyReportsChart";
+import { Trash2 } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
 import "./Reports.css";
 
 export default function Reports() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "Admin";
   const [reports, setReports] = useState([]);
   const [activeModal, setActiveModal] = useState(null); // 'add', 'edit', 'settle', 'docs', or null
 
   const refreshReports = () => {
     setReports(DB.getReports());
+  };
+
+  const handleDeleteReport = (id, title) => {
+    if (window.confirm(`Are you sure you want to delete report "${title || 'item'}"?`)) {
+      DB.deleteReport(id);
+      refreshReports();
+    }
   };
 
   useEffect(() => {
@@ -53,18 +64,24 @@ export default function Reports() {
           >
             Add Report
           </button>
-          <button
-            className="btn-report btn-report--settle"
-            onClick={() => setActiveModal("settle")}
-          >
-            Settle Report
-          </button>
-          <button
-            className="btn-report btn-report--edit"
-            onClick={() => setActiveModal("edit")}
-          >
-            Edit Report
-          </button>
+
+          {isAdmin && (
+            <>
+              <button
+                className="btn-report btn-report--settle"
+                onClick={() => setActiveModal("settle")}
+              >
+                Settle Report
+              </button>
+              <button
+                className="btn-report btn-report--edit"
+                onClick={() => setActiveModal("edit")}
+              >
+                Edit Report
+              </button>
+            </>
+          )}
+
           <button
             className="btn-report btn-report--docs"
             onClick={() => setActiveModal("docs")}
@@ -134,6 +151,7 @@ export default function Reports() {
                 <th>PARTIES</th>
                 <th>STATUS</th>
                 <th>DATE</th>
+                <th>ACTIONS</th>
               </tr>
             </thead>
             <tbody>
@@ -160,6 +178,25 @@ export default function Reports() {
                       </span>
                     </td>
                     <td>{rep.dateFiled}</td>
+                    <td>
+                      <button
+                        onClick={() => handleDeleteReport(rep.id, rep.title)}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "#ef4444",
+                          cursor: "pointer",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                          fontSize: "0.85rem",
+                          fontWeight: 500,
+                        }}
+                        title="Delete Report"
+                      >
+                        <Trash2 size={14} /> Delete
+                      </button>
+                    </td>
                   </tr>
                 );
               })}
