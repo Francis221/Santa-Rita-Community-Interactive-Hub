@@ -27,25 +27,21 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// ---- CORS: whitelist only your own origins (edit as needed) ----
-$allowedOrigins = [
-
-    'http://127.0.0.1'
-];
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-if ($origin !== '' && in_array($origin, $allowedOrigins, true)) {
+// ---- CORS: Allow Vercel, localhost, and custom domains ----
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '*';
+if ($origin !== '*') {
     header("Access-Control-Allow-Origin: $origin");
     header('Access-Control-Allow-Credentials: true');
-    header('Access-Control-Max-Age: 86400');
-    header('Vary: Origin');
+} else {
+    header("Access-Control-Allow-Origin: *");
 }
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+header('Access-Control-Max-Age: 86400');
+header('Vary: Origin');
+
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
-    if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD'])) {
-        header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-    }
-    if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS'])) {
-        header('Access-Control-Allow-Headers: Content-Type');
-    }
+    http_response_code(200);
     exit(0);
 }
 
@@ -53,9 +49,15 @@ if (php_sapi_name() !== 'cli') {
     header('Content-Type: application/json; charset=utf-8');
 }
 
-// ---- Database ----
+// ---- Database Connection Config ----
+$dbHost = getenv('DB_HOST') ?: '127.0.0.1';
+$dbName = getenv('DB_NAME') ?: 'login_system';
+$dbUser = getenv('DB_USER') ?: 'root';
+$dbPass = getenv('DB_PASS') !== false ? getenv('DB_PASS') : '';
+$dbPort = getenv('DB_PORT') ?: '3306';
+
 try {
-    $db = new PDO('mysql:host=127.0.0.1;dbname=login_system;charset=utf8mb4', 'root', '', [
+    $db = new PDO("mysql:host={$dbHost};port={$dbPort};dbname={$dbName};charset=utf8mb4", $dbUser, $dbPass, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     ]);
@@ -63,7 +65,7 @@ try {
     $db->exec("SET time_zone = '+08:00'");
 } catch (PDOException $e) {
     error_log('DB connection failed: ' . $e->getMessage());
-    out(['success' => false, 'message' => 'Database connection failed.'], 500);
+    out(['success' => false, 'message' => 'Database connection failed: ' . $e->getMessage()], 500);
 }
 
 // ---- EmailJS (server-side) ----

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { Search, Bell, HelpCircle, ShieldCheck, UserPlus } from "lucide-react";
+import { Search, Bell, HelpCircle, ShieldCheck, UserPlus, LogOut } from "lucide-react";
 import { navLinks } from "../constants/hubConfig";
 import { useAuth } from "../context/AuthContext";
 import { DB } from "../services/db";
@@ -93,7 +93,7 @@ export default function Navbar() {
           <span className="navbar__dot" />
         </button>
 
-        <div className="navbar__user" title={`Logged in as ${userRole}`}>
+        <div className="navbar__user" title="View Profile" onClick={() => navigate("/profile")}>
           {user?.avatar ? (
             <img src={user.avatar} alt={displayName} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
           ) : (
@@ -107,6 +107,17 @@ export default function Navbar() {
             </span>
           </div>
         </div>
+
+        <button
+          className="navbar__icon-btn"
+          type="button"
+          aria-label="Log Out"
+          title="Sign out of Community Hub"
+          onClick={() => window.dispatchEvent(new Event("openLogoutModal"))}
+          style={{ marginLeft: 6, color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.25)', background: 'rgba(239, 68, 68, 0.08)' }}
+        >
+          <LogOut size={16} strokeWidth={1.8} />
+        </button>
       </div>
     </header>
   );
