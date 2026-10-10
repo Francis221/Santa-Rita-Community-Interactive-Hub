@@ -7,26 +7,32 @@ error_reporting(E_ALL);
 
 try {
     // Ensure avatar, is_online, and last_active columns exist
-    try {
-        $checkAvatar = $db->query("SHOW COLUMNS FROM users LIKE 'avatar'");
-        if ($checkAvatar->rowCount() == 0) {
-            $db->exec("ALTER TABLE users ADD COLUMN avatar LONGTEXT DEFAULT NULL");
-        }
-    } catch (Throwable $e) {}
+    if ($db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+        try { $db->exec("ALTER TABLE users ADD COLUMN avatar TEXT DEFAULT NULL"); } catch (Throwable $e) {}
+        try { $db->exec("ALTER TABLE users ADD COLUMN is_online INTEGER DEFAULT 0"); } catch (Throwable $e) {}
+        try { $db->exec("ALTER TABLE users ADD COLUMN last_active DATETIME DEFAULT CURRENT_TIMESTAMP"); } catch (Throwable $e) {}
+    } else {
+        try {
+            $checkAvatar = $db->query("SHOW COLUMNS FROM users LIKE 'avatar'");
+            if ($checkAvatar->rowCount() == 0) {
+                $db->exec("ALTER TABLE users ADD COLUMN avatar LONGTEXT DEFAULT NULL");
+            }
+        } catch (Throwable $e) {}
 
-    try {
-        $checkCol = $db->query("SHOW COLUMNS FROM users LIKE 'is_online'");
-        if ($checkCol->rowCount() == 0) {
-            $db->exec("ALTER TABLE users ADD COLUMN is_online TINYINT(1) DEFAULT 0");
-        }
-    } catch (Throwable $e) {}
+        try {
+            $checkCol = $db->query("SHOW COLUMNS FROM users LIKE 'is_online'");
+            if ($checkCol->rowCount() == 0) {
+                $db->exec("ALTER TABLE users ADD COLUMN is_online TINYINT(1) DEFAULT 0");
+            }
+        } catch (Throwable $e) {}
 
-    try {
-        $checkActive = $db->query("SHOW COLUMNS FROM users LIKE 'last_active'");
-        if ($checkActive->rowCount() == 0) {
-            $db->exec("ALTER TABLE users ADD COLUMN last_active DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
-        }
-    } catch (Throwable $e) {}
+        try {
+            $checkActive = $db->query("SHOW COLUMNS FROM users LIKE 'last_active'");
+            if ($checkActive->rowCount() == 0) {
+                $db->exec("ALTER TABLE users ADD COLUMN last_active DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+            }
+        } catch (Throwable $e) {}
+    }
 
     // Auto-mark inactive users (>3 mins) as offline
     $threshold = date('Y-m-d H:i:s', strtotime('-3 minutes'));

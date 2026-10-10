@@ -1,12 +1,16 @@
 .sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
   width: var(--sidebar-w);
   flex-shrink: 0;
   padding: 28px 18px 24px;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
   border-right: 1px solid var(--border-soft);
   background: var(--bg-surface, #0c1021);
+  overflow-y: auto;
+  z-index: 100;
 }
 
 .sidebar__brand {

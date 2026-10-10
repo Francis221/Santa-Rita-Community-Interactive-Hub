@@ -35,15 +35,17 @@ try {
     }
 
     if (!$errors) {
-        // Ensure avatar column exists in users table
+        // Ensure avatar column exists in users table safely
         try {
-            $checkAvatar = $db->query("SHOW COLUMNS FROM users LIKE 'avatar'");
-            if ($checkAvatar->rowCount() == 0) {
-                $db->exec("ALTER TABLE users ADD COLUMN avatar LONGTEXT DEFAULT NULL");
+            if ($db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+                $db->exec("ALTER TABLE users ADD COLUMN avatar TEXT DEFAULT NULL");
+            } else {
+                $checkAvatar = $db->query("SHOW COLUMNS FROM users LIKE 'avatar'");
+                if ($checkAvatar->rowCount() == 0) {
+                    $db->exec("ALTER TABLE users ADD COLUMN avatar LONGTEXT DEFAULT NULL");
+                }
             }
-        } catch (Throwable $e) {
-            error_log('Avatar column check notice: ' . $e->getMessage());
-        }
+        } catch (Throwable $e) {}
 
         // Duplicate check
         $s = $db->prepare('SELECT username, email FROM users WHERE username = ? OR email = ?');
@@ -60,12 +62,24 @@ try {
         out(['error' => $errors[0], 'errors' => array_values(array_unique($errors))], 422);
     }
 
-    $db->prepare("INSERT INTO users (username, email, password, role, avatar) VALUES (?, ?, ?, 'Resident', ?)")
-        ->execute([$username, $email, password_hash($password, PASSWORD_DEFAULT), $photo]);
+    $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+    $stmt = $db->prepare("INSERT INTO users (username, email, password, role, avatar) VALUES (?, ?, ?, 'Resident', ?)");
+    $stmt->execute([$username, $email, $hashedPassword, $photo]);
+    $newId = (int)$db->lastInsertId();
 
-    out(['ok' => true, 'message' => 'Account created successfully!'], 201);
+    out([
+        'ok' => true,
+        'message' => 'Account created successfully!',
+        'user' => [
+            'id' => $newId,
+            'username' => $username,
+            'email' => $email,
+            'role' => 'Resident',
+            'avatar' => $photo
+        ]
+    ], 201);
 
 } catch (Throwable $e) {
     error_log('Register failed: ' . $e->getMessage());
-    out(['error' => 'Could not create account. Please try again.'], 500);
+    out(['error' => 'Could not create account: ' . $e->getMessage()], 500);
 }
