@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: santa-rita-community-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: DB_HOST
+        value: sql302.infinityfree.com
+      - key: DB_NAME
+        value: if0_43140654_login_system
+      - key: DB_USER
+        value: if0_43140654
+      - key: DB_PASS
+        value: tr2Rcq8LuP7tX
+      - key: DB_PORT
+        value: 3306
