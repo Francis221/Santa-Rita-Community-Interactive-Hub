@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import ConversationList from './ConversationList';
 import ChatWindow from './ChatWindow';
 import NewChatModal from './NewChatModal';
@@ -73,6 +74,18 @@ class ChatsMainframe extends React.Component {
     this.loadActiveMessages(this.state.activeConversationId);
     this.sendOnlineHeartbeat();
 
+    // Automatically open friend conversation if navigated from friend list
+    if (this.props.location?.state?.targetName) {
+      const st = this.props.location.state;
+      this.handleCreateNewChat({
+        id: st.targetUserId,
+        other_user_id: st.targetUserId,
+        name: st.targetName,
+        role: st.targetRole || 'Resident',
+        isOnline: Boolean(st.isOnline)
+      });
+    }
+
     // Short-polling interval for immediate chat responsiveness (1.5 seconds)
     this.chatInterval = setInterval(() => {
       this.loadActiveMessages(this.state.activeConversationId);
@@ -98,6 +111,16 @@ class ChatsMainframe extends React.Component {
   componentDidUpdate(prevProps, prevState) {
     if (prevState.activeConversationId !== this.state.activeConversationId) {
       this.loadActiveMessages(this.state.activeConversationId);
+    }
+    if (this.props.location?.state?.targetName && this.props.location.state.targetName !== prevProps.location?.state?.targetName) {
+      const st = this.props.location.state;
+      this.handleCreateNewChat({
+        id: st.targetUserId,
+        other_user_id: st.targetUserId,
+        name: st.targetName,
+        role: st.targetRole || 'Resident',
+        isOnline: Boolean(st.isOnline)
+      });
     }
   }
 
@@ -454,5 +477,7 @@ class ChatsMainframe extends React.Component {
 // Wrapper component to provide current logged-in user from AuthContext
 export default function Chats() {
   const { user } = useAuth();
-  return <ChatsMainframe currentUser={user} />;
+  const location = useLocation();
+  const navigate = useNavigate();
+  return <ChatsMainframe currentUser={user} location={location} navigate={navigate} />;
 }

@@ -54,11 +54,6 @@ export default function FindFriendsWidget({ limit = 0, showHeader = true }) {
     refreshResidents();
   };
 
-  const handleToggleOnline = (id) => {
-    DB.toggleResidentOnline(id);
-    refreshResidents();
-  };
-
   // Build complete user list including Current Logged In User
   const currentUserName = user?.username || "Juan Dela Cruz";
   const currentUserRole = user?.role || "Resident";
@@ -87,11 +82,11 @@ export default function FindFriendsWidget({ limit = 0, showHeader = true }) {
           (r.username && r.username.toLowerCase() === currentUserName.toLowerCase());
         return isSelf
           ? { ...r, isOnline: true, isSelf: true }
-          : { ...r, isOnline: Boolean(r.isOnline || r.isToggledOnline), isSelf: false };
+          : { ...r, isOnline: Boolean(r.isOnline), isSelf: false };
       })
     : [
         currentUserCard,
-        ...residents.map((r) => ({ ...r, isOnline: Boolean(r.isOnline || r.isToggledOnline), isSelf: false })),
+        ...residents.map((r) => ({ ...r, isOnline: Boolean(r.isOnline), isSelf: false })),
       ];
 
   // Filter by Tab
@@ -218,15 +213,6 @@ export default function FindFriendsWidget({ limit = 0, showHeader = true }) {
                 <div style={{ margin: "0.2rem 0 0.8rem 0", fontSize: "0.75rem", fontWeight: 600, color: isOnline ? "#34d399" : "#64748b", display: "flex", alignItems: "center", gap: 4 }}>
                   <span style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: isOnline ? "#10b981" : "#64748b", display: "inline-block" }}></span>
                   {isOnline ? "Online Now" : "Offline"}
-                  {!resident.isSelf && (
-                    <button
-                      onClick={() => handleToggleOnline(resident.id)}
-                      style={{ background: "none", border: "none", color: "#38bdf8", cursor: "pointer", fontSize: "0.7rem", marginLeft: 4, textDecoration: "underline" }}
-                      title="Toggle simulated status"
-                    >
-                      (toggle)
-                    </button>
-                  )}
                 </div>
 
                 {/* Actions */}
@@ -242,7 +228,17 @@ export default function FindFriendsWidget({ limit = 0, showHeader = true }) {
                     </button>
                     <button
                       className="btn-friend-action btn-friend-msg"
-                      onClick={() => navigate("/chats")}
+                      onClick={() => {
+                        const rawId = resident.id?.replace?.("user-", "") || resident.id;
+                        navigate("/chats", {
+                          state: {
+                            targetUserId: rawId,
+                            targetName: resident.name,
+                            targetRole: resident.role,
+                            isOnline: isOnline,
+                          }
+                        });
+                      }}
                       title="Send Message"
                     >
                       <MessageSquare size={16} />

@@ -379,14 +379,27 @@ export const DB = {
 
   fetchUsersFromApi: async () => {
     try {
-      const res = await fetch('/api/users.php', { credentials: 'include' });
-      if (res.ok) {
-        const data = await res.json();
+      const [resUsers, resFriends] = await Promise.all([
+        fetch('/api/users.php', { credentials: 'include' }).catch(() => null),
+        fetch('/api/friends.php?action=list', { credentials: 'include' }).catch(() => null)
+      ]);
+
+      if (resUsers && resUsers.ok) {
+        const data = await resUsers.json();
+        let friendsData = { friends: [], incoming: [], outgoing: [] };
+        if (resFriends && resFriends.ok) {
+          try {
+            const fJson = await resFriends.json();
+            if (fJson && fJson.success) friendsData = fJson;
+          } catch (e) {}
+        }
+
         if (data && data.success && Array.isArray(data.users)) {
           const currentResidents = DB.getResidents();
           
-          // Construct resident list strictly from MySQL database users
+          // Construct resident list strictly from MySQL database users and backend friend status
           const updated = data.users.map((u) => {
+            const uIdNum = Number(u.id);
             const uNameLower = (u.username || "").toLowerCase();
             const existing = currentResidents.find(
               (r) =>
@@ -395,7 +408,27 @@ export const DB = {
                 r.id === `user-${u.id}`
             );
             const isDbOnline = Boolean(u.is_online);
-            const isToggled = existing ? Boolean(existing.isToggledOnline) : false;
+
+            let isFriend = friendsData.friends?.includes(uIdNum) || false;
+            let status = 'none';
+
+            if (isFriend) {
+              status = 'accepted';
+            } else if (friendsData.incoming?.includes(uIdNum)) {
+              status = 'pending_incoming';
+            } else if (friendsData.outgoing?.includes(uIdNum)) {
+              status = 'pending_outgoing';
+            } else if (existing?.status && existing.status !== 'self') {
+              status = existing.status;
+              isFriend = existing.isFriend;
+            } else {
+              // Defaults for known accepted users
+              if (uNameLower === "justinryan" || uNameLower === "admin" || uNameLower === "kyla") {
+                isFriend = true;
+                status = "accepted";
+              }
+            }
+
             return {
               id: `user-${u.id}`,
               name: u.username,
@@ -404,10 +437,9 @@ export const DB = {
               role: u.role || (existing ? existing.role : "Resident"),
               purok: existing ? existing.purok : "Purok 1 (Sta. Rita Central)",
               avatar: u.avatar || (existing ? existing.avatar : "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80"),
-              isFriend: existing ? existing.isFriend : (u.username?.toLowerCase() === "justinryan" || u.username?.toLowerCase() === "admin" || u.username?.toLowerCase() === "francis"),
-              status: existing ? existing.status : (u.username?.toLowerCase() === "justinryan" || u.username?.toLowerCase() === "admin" || u.username?.toLowerCase() === "francis" ? "accepted" : "none"),
+              isFriend: isFriend,
+              status: status,
               isOnline: isDbOnline,
-              isToggledOnline: isToggled,
             };
           });
 
@@ -428,6 +460,17 @@ export const DB = {
     const updated = residents.map((r) => (r.id === id ? { ...r, status: "pending_outgoing" } : r));
     localStorage.setItem(STORAGE_KEYS.RESIDENTS, JSON.stringify(updated));
     window.dispatchEvent(new Event("friendsUpdated"));
+
+    const friendId = id?.replace?.("user-", "");
+    try {
+      fetch('/api/friends.php?action=send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ friend_id: friendId })
+      }).catch(() => {});
+    } catch (e) {}
+
     return updated;
   },
 
@@ -436,6 +479,17 @@ export const DB = {
     const updated = residents.map((r) => (r.id === id ? { ...r, isFriend: true, status: "accepted" } : r));
     localStorage.setItem(STORAGE_KEYS.RESIDENTS, JSON.stringify(updated));
     window.dispatchEvent(new Event("friendsUpdated"));
+
+    const friendId = id?.replace?.("user-", "");
+    try {
+      fetch('/api/friends.php?action=accept', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ friend_id: friendId })
+      }).catch(() => {});
+    } catch (e) {}
+
     return updated;
   },
 
@@ -444,6 +498,17 @@ export const DB = {
     const updated = residents.map((r) => (r.id === id ? { ...r, isFriend: false, status: "none" } : r));
     localStorage.setItem(STORAGE_KEYS.RESIDENTS, JSON.stringify(updated));
     window.dispatchEvent(new Event("friendsUpdated"));
+
+    const friendId = id?.replace?.("user-", "");
+    try {
+      fetch('/api/friends.php?action=reject', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ friend_id: friendId })
+      }).catch(() => {});
+    } catch (e) {}
+
     return updated;
   },
 

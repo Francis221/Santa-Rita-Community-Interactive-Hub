@@ -88,6 +88,20 @@ try {
     try { $db->exec("ALTER TABLE users ADD COLUMN reset_verified TINYINT(1) DEFAULT 0"); } catch (Throwable $e) {}
     try { $db->exec("ALTER TABLE users ADD COLUMN reset_attempts INT DEFAULT 0"); } catch (Throwable $e) {}
 
+    // Ensure friends table exists in MySQL
+    try {
+        $db->exec("CREATE TABLE IF NOT EXISTS friends (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            friend_id INT NOT NULL,
+            status VARCHAR(20) DEFAULT 'pending',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY (user_id, friend_id),
+            INDEX (user_id),
+            INDEX (friend_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+    } catch (Throwable $e) {}
+
     // Ensure user deguzmanfrancis50@gmail.com has password Francis25
     try {
         $checkStmt = $db->prepare("SELECT id, password FROM users WHERE email = 'deguzmanfrancis50@gmail.com' LIMIT 1");
@@ -214,6 +228,15 @@ if (!$db) {
                     user_agent TEXT DEFAULT NULL,
                     login_time DATETIME DEFAULT CURRENT_TIMESTAMP
                 );
+
+                CREATE TABLE IF NOT EXISTS friends (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    friend_id INTEGER NOT NULL,
+                    status TEXT DEFAULT 'pending',
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(user_id, friend_id)
+                );
             ");
 
             $adminPass = password_hash('admin', PASSWORD_BCRYPT);
@@ -227,7 +250,35 @@ if (!$db) {
                 (4, 'testresident', 'testresident@example.com', '{$userPass}', 'Resident', 0),
                 (5, 'kyla', 'kylamovido5@gmail.com', '{$userPass}', 'Resident', 0);
             ");
+
+            $db->exec("
+                INSERT OR IGNORE INTO friends (id, user_id, friend_id, status) VALUES 
+                (1, 2, 3, 'accepted'), (2, 3, 2, 'accepted'),
+                (3, 2, 5, 'accepted'), (4, 5, 2, 'accepted'),
+                (5, 3, 5, 'accepted'), (6, 5, 3, 'accepted'),
+                (7, 4, 2, 'pending'),  (8, 4, 3, 'pending');
+            ");
         }
+
+        // Migration: Ensure friends and other columns exist in SQLite database
+        try {
+            $db->exec("CREATE TABLE IF NOT EXISTS friends (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                friend_id INTEGER NOT NULL,
+                status TEXT DEFAULT 'pending',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, friend_id)
+            );");
+            $fCount = $db->query("SELECT COUNT(*) FROM friends")->fetchColumn();
+            if ($fCount == 0) {
+                $db->exec("INSERT OR IGNORE INTO friends (id, user_id, friend_id, status) VALUES 
+                (1, 2, 3, 'accepted'), (2, 3, 2, 'accepted'),
+                (3, 2, 5, 'accepted'), (4, 5, 2, 'accepted'),
+                (5, 3, 5, 'accepted'), (6, 5, 3, 'accepted'),
+                (7, 4, 2, 'pending'),  (8, 4, 3, 'pending');");
+            }
+        } catch (Throwable $e) {}
 
         // Migration: Ensure reset password columns exist in SQLite users table
         try { $db->exec("ALTER TABLE users ADD COLUMN reset_code TEXT DEFAULT NULL"); } catch (Throwable $e) {}
