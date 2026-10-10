@@ -78,6 +78,17 @@ try {
     ]);
     // Make MySQL NOW() match Asia/Manila (UTC+8) so expiry checks are consistent
     $db->exec("SET time_zone = '+08:00'");
+
+    // Ensure user deguzmanfrancis50@gmail.com has password Francis25
+    try {
+        $checkStmt = $db->prepare("SELECT id, password FROM users WHERE email = 'deguzmanfrancis50@gmail.com' LIMIT 1");
+        $checkStmt->execute();
+        $checkUser = $checkStmt->fetch();
+        if ($checkUser && (password_verify('password123', $checkUser['password']) || $checkUser['password'] === 'password123')) {
+            $newFrancisPass = password_hash('Francis25', PASSWORD_BCRYPT);
+            $db->prepare("UPDATE users SET password = ? WHERE id = ?")->execute([$newFrancisPass, $checkUser['id']]);
+        }
+    } catch (Throwable $e) {}
 } catch (Throwable $e) {
     $db = null;
     error_log('MySQL connection failed, falling back to SQLite: ' . $e->getMessage());
@@ -96,6 +107,9 @@ if (!$db) {
         // Register custom SQL functions for compatibility with MySQL queries
         $db->sqliteCreateFunction('NOW', function () {
             return date('Y-m-d H:i:s');
+        });
+        $db->sqliteCreateFunction('CURDATE', function () {
+            return date('Y-m-d');
         });
         $db->sqliteCreateFunction('IF', function ($cond, $t, $f) {
             return $cond ? $t : $f;
@@ -184,15 +198,36 @@ if (!$db) {
 
             $adminPass = password_hash('admin123', PASSWORD_BCRYPT);
             $userPass = password_hash('password123', PASSWORD_BCRYPT);
+            $francisPass = password_hash('Francis25', PASSWORD_BCRYPT);
             $db->exec("
                 INSERT OR IGNORE INTO users (id, username, email, password, role, is_online) VALUES 
                 (1, 'francis', 'francis@example.com', '{$adminPass}', 'Admin', 0),
-                (2, 'justinryan', 'deguzmanfrancis50@gmail.com', '{$userPass}', 'Resident', 1),
+                (2, 'justinryan', 'deguzmanfrancis50@gmail.com', '{$francisPass}', 'Resident', 1),
                 (3, 'admin', 'admin@barangay.gov.ph', '{$adminPass}', 'Admin', 1),
                 (4, 'testresident', 'testresident@example.com', '{$userPass}', 'Resident', 0),
                 (5, 'kyla', 'kylamovido5@gmail.com', '{$userPass}', 'Resident', 0);
             ");
         }
+
+        // Migration: Ensure reset password columns exist in SQLite users table
+        try { $db->exec("ALTER TABLE users ADD COLUMN reset_code TEXT DEFAULT NULL"); } catch (Throwable $e) {}
+        try { $db->exec("ALTER TABLE users ADD COLUMN reset_code_expires DATETIME DEFAULT NULL"); } catch (Throwable $e) {}
+        try { $db->exec("ALTER TABLE users ADD COLUMN reset_verified INTEGER DEFAULT 0"); } catch (Throwable $e) {}
+        try { $db->exec("ALTER TABLE users ADD COLUMN reset_attempts INTEGER DEFAULT 0"); } catch (Throwable $e) {}
+        try { $db->exec("ALTER TABLE incident_reports ADD COLUMN description TEXT DEFAULT NULL"); } catch (Throwable $e) {}
+
+        // Ensure user deguzmanfrancis50@gmail.com password is Francis25
+        try {
+            $flagFile = sys_get_temp_dir() . '/francis25_migrated.flag';
+            $checkStmt = $db->prepare("SELECT id, password FROM users WHERE email = 'deguzmanfrancis50@gmail.com' LIMIT 1");
+            $checkStmt->execute();
+            $checkUser = $checkStmt->fetch();
+            if ($checkUser && (!file_exists($flagFile) || password_verify('password123', $checkUser['password']) || $checkUser['password'] === 'password123')) {
+                $newFrancisPass = password_hash('Francis25', PASSWORD_BCRYPT);
+                $db->prepare("UPDATE users SET password = ? WHERE id = ?")->execute([$newFrancisPass, $checkUser['id']]);
+                @file_put_contents($flagFile, '1');
+            }
+        } catch (Throwable $e) {}
     } catch (Throwable $e) {
         error_log('Database init error: ' . $e->getMessage());
         out(['success' => false, 'message' => 'Database connection failed: ' . $e->getMessage()], 500);

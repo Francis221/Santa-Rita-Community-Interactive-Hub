@@ -7,17 +7,29 @@ error_reporting(E_ALL);
 
 try {
     // Ensure login_logs table exists
-    $db->exec("CREATE TABLE IF NOT EXISTS login_logs (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        user_id INT NOT NULL,
-        username VARCHAR(100) NOT NULL,
-        role VARCHAR(50) DEFAULT 'Resident',
-        ip_address VARCHAR(45) DEFAULT NULL,
-        user_agent TEXT DEFAULT NULL,
-        login_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-        INDEX (user_id),
-        INDEX (login_time)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+    if ($db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+        $db->exec("CREATE TABLE IF NOT EXISTS login_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            username TEXT NOT NULL,
+            role TEXT DEFAULT 'Resident',
+            ip_address TEXT DEFAULT NULL,
+            user_agent TEXT DEFAULT NULL,
+            login_time DATETIME DEFAULT CURRENT_TIMESTAMP
+        );");
+    } else {
+        $db->exec("CREATE TABLE IF NOT EXISTS login_logs (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            username VARCHAR(100) NOT NULL,
+            role VARCHAR(50) DEFAULT 'Resident',
+            ip_address VARCHAR(45) DEFAULT NULL,
+            user_agent TEXT DEFAULT NULL,
+            login_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+            INDEX (user_id),
+            INDEX (login_time)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+    }
 } catch (Throwable $e) {
     error_log('login_logs table setup notice: ' . $e->getMessage());
 }

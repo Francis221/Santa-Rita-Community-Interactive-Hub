@@ -12,10 +12,7 @@ if ($email === '' || $code === '') {
 $invalid = 'Invalid or expired verification code.';
 
 try {
-    $stmt = $db->prepare(
-        'SELECT id, reset_code, reset_attempts, (reset_code_expires >= NOW()) AS is_valid_time
-           FROM users WHERE email = ? LIMIT 1'
-    );
+    $stmt = $db->prepare('SELECT id, reset_code, reset_attempts, reset_code_expires FROM users WHERE email = ? LIMIT 1');
     $stmt->execute([$email]);
     $user = $stmt->fetch();
 
@@ -28,7 +25,8 @@ try {
         out(['success' => false, 'message' => 'Too many failed attempts. Please request a new code.'], 400);
     }
 
-    if ((int) ($user['is_valid_time'] ?? 0) !== 1) {
+    $isExpired = empty($user['reset_code_expires']) || (strtotime($user['reset_code_expires']) < time());
+    if ($isExpired) {
         out(['success' => false, 'message' => 'Verification code has expired. Please click Resend Code.'], 400);
     }
 
