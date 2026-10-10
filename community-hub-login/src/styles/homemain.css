@@ -1,0 +1,83 @@
+:root {
+  /* Color tokens — lifted from the Sta. Rita Central mid-fi */
+  --bg-base: #0a0918;
+  --bg-gradient: radial-gradient(ellipse 120% 60% at 50% -10%, #2f1f66 0%, #191140 38%, #0a0918 75%);
+  --panel: rgba(255, 255, 255, 0.05);
+  --panel-solid: #161233;
+  --panel-strong: rgba(10, 12, 31, 0.55);
+  --border: rgba(255, 255, 255, 0.09);
+  --border-soft: rgba(255, 255, 255, 0.06);
+  --accent-blue: #5583ff;
+  --accent-blue-light: #8fb0ff;
+  --accent-red: #ff4d5e;
+  --accent-red-soft: rgba(255, 77, 94, 0.14);
+  --accent-blue-soft: rgba(85, 131, 255, 0.14);
+  --text-primary: #f6f6fb;
+  --text-secondary: #c7c5de;
+  --text-muted: #8b88ab;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --font-display: "Sora", "Manrope", system-ui, sans-serif;
+  --font-body: "Manrope", system-ui, sans-serif;
+  --sidebar-w: 248px;
+  --content-max: 1160px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg-base);
+  background-image: var(--bg-gradient);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+::selection {
+  background: var(--accent-blue);
+  color: #fff;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-blue-light);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

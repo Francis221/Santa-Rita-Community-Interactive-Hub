@@ -1,0 +1,33 @@
+.officials-page__heading {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 700;
+  margin: 32px 0 28px;
+}
+
+.officials-page__subheading {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin: 0 0 18px;
+}
+
+.officials-page__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  padding-bottom: 40px;
+}
+
+@media (max-width: 900px) {
+  .officials-page__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 520px) {
+  .officials-page__grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,402 @@
+/* Documents Request & Live Template Autofill System */
+
+.docs-page {
+  padding: 24px 0 60px;
+  color: #e2e8f0;
+}
+
+.docs-header {
+  margin-bottom: 24px;
+}
+
+.docs-header h1 {
+  font-family: var(--font-display, 'Sora', sans-serif);
+  font-size: 28px;
+  font-weight: 800;
+  margin: 0 0 6px 0;
+  color: #ffffff;
+}
+
+.docs-header p {
+  color: #94a3b8;
+  font-size: 14px;
+  margin: 0;
+}
+
+/* Document Types Selector Bar */
+.docs-type-tabs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.doc-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: 12px;
+  background: rgba(20, 26, 54, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.doc-tab-btn:hover {
+  background: rgba(30, 39, 78, 0.9);
+  color: #ffffff;
+}
+
+.doc-tab-btn--active {
+  background: linear-gradient(135deg, #3b82f6, #4f46e5);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+}
+
+/* Layout Grid: Editor vs Live Preview */
+.docs-workspace-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 28px;
+  align-items: start;
+}
+
+/* Editor Form Container */
+.docs-editor-card {
+  background: rgba(20, 26, 54, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  padding: 24px;
+  backdrop-filter: blur(12px);
+}
+
+.editor-section-title {
+  font-family: var(--font-display, 'Sora', sans-serif);
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 16px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.autofill-hint {
+  font-size: 12px;
+  color: #34d399;
+  font-weight: 500;
+  background: rgba(16, 185, 129, 0.12);
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.doc-form-group {
+  margin-bottom: 16px;
+}
+
+.doc-form-group label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.doc-input, .doc-select, .doc-textarea {
+  width: 100%;
+  background: #141b33;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 12px 14px;
+  color: #ffffff;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.doc-input:focus, .doc-select:focus, .doc-textarea:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+}
+
+.doc-textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.doc-presets {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.preset-chip {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.preset-chip:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.editor-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.btn-doc-primary {
+  flex: 1;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #ffffff;
+  border: none;
+  padding: 13px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.35);
+  transition: transform 0.15s;
+}
+
+.btn-doc-primary:hover {
+  transform: translateY(-1px);
+}
+
+.btn-doc-print {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: #ffffff;
+  border: none;
+  padding: 13px 22px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.35);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: transform 0.15s;
+}
+
+.btn-doc-print:hover {
+  transform: translateY(-1px);
+}
+
+/* Printable Document Template Box - Authentic Philippine Barangay Layout */
+.doc-template-card {
+  background: #ffffff;
+  color: #111827;
+  border-radius: 4px;
+  padding: 48px 44px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  font-family: 'Times New Roman', Times, serif;
+  position: relative;
+  min-height: 680px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.doc-header-official {
+  text-align: center;
+  border-bottom: 2px solid #1e293b;
+  padding-bottom: 16px;
+  margin-bottom: 28px;
+  position: relative;
+}
+
+.doc-seal-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  border: 2px solid #1e3a8a;
+  padding: 2px;
+  object-fit: cover;
+}
+
+.doc-header-text p {
+  margin: 1px 0;
+  font-size: 13px;
+  letter-spacing: 0.05em;
+  color: #374151;
+}
+
+.doc-header-text .republic-line {
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.doc-header-text .office-line {
+  font-family: 'Arial', sans-serif;
+  font-weight: 800;
+  font-size: 15px;
+  margin-top: 6px;
+  color: #1e3a8a;
+}
+
+.doc-title-official {
+  text-align: center;
+  font-family: 'Arial', sans-serif;
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: #1e3a8a;
+  margin: 20px 0 24px 0;
+  text-transform: uppercase;
+  text-decoration: underline;
+}
+
+.doc-body-official {
+  font-size: 15px;
+  line-height: 1.8;
+  color: #111827;
+  text-align: justify;
+}
+
+.doc-body-official p {
+  margin-bottom: 18px;
+  text-indent: 40px;
+}
+
+.doc-highlight {
+  font-weight: bold;
+  text-decoration: underline;
+  text-transform: uppercase;
+  color: #000000;
+}
+
+.doc-signatures-official {
+  margin-top: 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding-top: 20px;
+}
+
+.thumbprint-box {
+  width: 100px;
+  height: 90px;
+  border: 1px dashed #6b7280;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: #9ca3af;
+  text-align: center;
+}
+
+.signatory-box {
+  text-align: center;
+  min-width: 220px;
+}
+
+.signatory-name {
+  font-family: 'Arial', sans-serif;
+  font-weight: 800;
+  font-size: 15px;
+  margin-bottom: 2px;
+  text-decoration: underline;
+  text-transform: uppercase;
+}
+
+.signatory-title {
+  font-size: 12px;
+  color: #4b5563;
+}
+
+.doc-footer-details {
+  margin-top: 30px;
+  font-size: 11px;
+  color: #4b5563;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 10px;
+  display: flex;
+  justify-content: space-between;
+}
+
+/* Document Requests Database Table inside Request Document Page */
+.doc-requests-table-card {
+  margin-top: 36px;
+  background: rgba(20, 26, 54, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  padding: 24px;
+  backdrop-filter: blur(12px);
+}
+
+.btn-doc-accept {
+  background: #10b981;
+  color: #ffffff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+  display: inline-flex;
+  align-items: center;
+}
+
+.btn-doc-accept:hover {
+  background: #059669;
+  transform: translateY(-1px);
+}
+
+.btn-doc-decline {
+  background: #ef4444;
+  color: #ffffff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+  display: inline-flex;
+  align-items: center;
+}
+
+.btn-doc-decline:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+}
+
+/* Media Query for Print Mode */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .doc-template-card, .doc-template-card * {
+    visibility: visible;
+  }
+  .doc-template-card {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 30px;
+    box-shadow: none;
+    border: none;
+  }
+}
