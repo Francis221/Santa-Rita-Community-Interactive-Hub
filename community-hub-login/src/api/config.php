@@ -50,8 +50,9 @@ if (php_sapi_name() !== 'cli') {
 }
 
 // ---- Database Connection Config ----
-// Detect if running locally or on InfinityFree remote server
 $isLocalhost = in_array($_SERVER['SERVER_NAME'] ?? '', ['127.0.0.1', 'localhost']) || (php_sapi_name() === 'cli' && empty(getenv('DB_HOST')));
+
+$db = null;
 
 if ($isLocalhost && !getenv('DB_HOST')) {
     $dbHost = '127.0.0.1';
@@ -68,16 +69,134 @@ if ($isLocalhost && !getenv('DB_HOST')) {
     $dbPort = getenv('DB_PORT') ?: '3306';
 }
 
+// 1. Try MySQL Connection
 try {
     $db = new PDO("mysql:host={$dbHost};port={$dbPort};dbname={$dbName};charset=utf8mb4", $dbUser, $dbPass, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_TIMEOUT => 3
     ]);
     // Make MySQL NOW() match Asia/Manila (UTC+8) so expiry checks are consistent
     $db->exec("SET time_zone = '+08:00'");
-} catch (PDOException $e) {
-    error_log('DB connection failed: ' . $e->getMessage());
-    out(['success' => false, 'message' => 'Database connection failed: ' . $e->getMessage()], 500);
+} catch (Throwable $e) {
+    $db = null;
+    error_log('MySQL connection failed, falling back to SQLite: ' . $e->getMessage());
+}
+
+// 2. High-Availability SQLite Database Fallback
+if (!$db) {
+    try {
+        $sqlitePath = sys_get_temp_dir() . '/login_system.sqlite';
+        $isNewDb = !file_exists($sqlitePath);
+        $db = new PDO('sqlite:' . $sqlitePath, null, null, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        ]);
+
+        // Register custom SQL functions for compatibility with MySQL queries
+        $db->sqliteCreateFunction('NOW', function () {
+            return date('Y-m-d H:i:s');
+        });
+        $db->sqliteCreateFunction('IF', function ($cond, $t, $f) {
+            return $cond ? $t : $f;
+        });
+
+        if ($isNewDb) {
+            $db->exec("
+                CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT NOT NULL UNIQUE,
+                    email TEXT NOT NULL,
+                    password TEXT NOT NULL,
+                    role TEXT DEFAULT 'Resident',
+                    avatar TEXT DEFAULT NULL,
+                    is_online INTEGER DEFAULT 0,
+                    last_active DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+
+                CREATE TABLE IF NOT EXISTS messages (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    sender_id INTEGER NOT NULL,
+                    receiver_id INTEGER DEFAULT NULL,
+                    conversation_id TEXT DEFAULT NULL,
+                    text TEXT NOT NULL,
+                    is_read INTEGER DEFAULT 0,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+
+                CREATE TABLE IF NOT EXISTS announcements (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    announcement_code TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    category TEXT DEFAULT 'Official Notice',
+                    date_info TEXT DEFAULT NULL,
+                    time_info TEXT DEFAULT '9:00 AM',
+                    location TEXT DEFAULT 'Barangay Hall',
+                    author TEXT DEFAULT 'Barangay Council',
+                    content TEXT NOT NULL,
+                    badge TEXT DEFAULT 'Active',
+                    image TEXT DEFAULT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+
+                CREATE TABLE IF NOT EXISTS incident_reports (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    report_code TEXT NOT NULL UNIQUE,
+                    case_type TEXT NOT NULL,
+                    complainant TEXT NOT NULL,
+                    respondent TEXT DEFAULT NULL,
+                    purok TEXT DEFAULT 'Purok 1',
+                    status TEXT DEFAULT 'Pending',
+                    details TEXT NOT NULL,
+                    date_filed DATE DEFAULT CURRENT_DATE,
+                    settlement_date DATE DEFAULT NULL,
+                    settle_by TEXT DEFAULT NULL,
+                    resolution_summary TEXT DEFAULT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+
+                CREATE TABLE IF NOT EXISTS doc_requests (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    request_code TEXT NOT NULL UNIQUE,
+                    applicant_name TEXT NOT NULL,
+                    doc_type TEXT NOT NULL,
+                    document_name TEXT NOT NULL,
+                    status TEXT DEFAULT 'Pending',
+                    purpose TEXT NOT NULL,
+                    address TEXT NOT NULL,
+                    civil_status TEXT DEFAULT 'Single',
+                    age INTEGER DEFAULT 25,
+                    ctc_no TEXT DEFAULT NULL,
+                    or_no TEXT DEFAULT NULL,
+                    date_requested DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+
+                CREATE TABLE IF NOT EXISTS login_logs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    username TEXT NOT NULL,
+                    role TEXT NOT NULL,
+                    ip_address TEXT DEFAULT NULL,
+                    user_agent TEXT DEFAULT NULL,
+                    login_time DATETIME DEFAULT CURRENT_TIMESTAMP
+                );
+            ");
+
+            $adminPass = password_hash('admin123', PASSWORD_BCRYPT);
+            $userPass = password_hash('password123', PASSWORD_BCRYPT);
+            $db->exec("
+                INSERT OR IGNORE INTO users (id, username, email, password, role, is_online) VALUES 
+                (1, 'francis', 'francis@example.com', '{$adminPass}', 'Admin', 0),
+                (2, 'justinryan', 'deguzmanfrancis50@gmail.com', '{$userPass}', 'Resident', 1),
+                (3, 'admin', 'admin@barangay.gov.ph', '{$adminPass}', 'Admin', 1),
+                (4, 'testresident', 'testresident@example.com', '{$userPass}', 'Resident', 0),
+                (5, 'kyla', 'kylamovido5@gmail.com', '{$userPass}', 'Resident', 0);
+            ");
+        }
+    } catch (Throwable $e) {
+        error_log('Database init error: ' . $e->getMessage());
+        out(['success' => false, 'message' => 'Database connection failed: ' . $e->getMessage()], 500);
+    }
 }
 
 // ---- EmailJS (server-side) ----
