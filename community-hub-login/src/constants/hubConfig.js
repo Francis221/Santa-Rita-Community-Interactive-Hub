@@ -1,4 +1,14 @@
 // Barangay System Configuration and Navigation Structure
+import logoStaRita from '../components/photo/logostarita.jpg';
+import captainPhoto from '../components/photo/Punong_barangay.png';
+import secPhoto from '../components/photo/sec.png';
+import chsPhoto from '../components/photo/chs.png';
+import cpoPhoto from '../components/photo/cpo.png';
+import eduPhoto from '../components/photo/edu.png';
+import cbaPhoto from '../components/photo/cba.png';
+import livelihoodPhoto from '../components/photo/livelihood.png';
+import treasurerPhoto from '../components/photo/treasurer.png';
+import agriPhoto from '../components/photo/agri.png';
 
 export const barangay = {
   name: "Sta. Rita Central",
@@ -6,7 +16,7 @@ export const barangay = {
   email: "barangay@sta-rita.gov.ph",
   phone: "0912 345 6789",
   address: "Barangay Hall, Agoo, La Union",
-  photo: './src/components/photo/logostarita.jpg'
+  photo: logoStaRita
 };
 
 export const stats = [
@@ -74,18 +84,18 @@ export const captain = {
   badge: "Head of Council",
   phone: "0912 345 6789",
   email: "captain@sta-rita.gov.ph",
-  photo: "./src/components/photo/Punong_barangay.png",
+  photo: captainPhoto,
 };
 
 export const kagawad = [
-  { id: "k0", name: "LENY V. PANELO", role: "Barangay Secretary", photo: "./src/components/photo/sec.png" },
-  { id: "k1", name: "REGINA ELENA O. DULAY", role: "Barangay Kagawad", committee: "Committee on Health", photo: "./src/components/photo/chs.png" },
-  { id: "k2", name: "GLORIA D. ALBAY", role: "Barangay Kagawad", committee: "Peace & Order", photo: "./src/components/photo/cpo.png" },
-  { id: "k3", name: "DOMINGO R. NARDO", role: "Barangay Kagawad", committee: "Committee Chair on Education", photo: "./src/components/photo/edu.png" },
-  { id: "k4", name: "SALOME B. ALOOT", role: "Barangay Kagawad", committee: "Committee Chair on Budget and Appropriation", photo: "./src/components/photo/cba.png" },
-  { id: "k5", name: "JO ANN V. ALOOT", role: "Barangay Kagawad", committee: "Committee Chair on Livelihood", photo: "./src/components/photo/livelihood.png" },
-  { id: "k6", name: "AGNES C. MACASIEB", role: "Barangay Kagawad", committee: "Treasurer", photo: "./src/components/photo/treasurer.png" },
-  { id: "k7", name: "AMADO R. ALOOT", role: "Barangay Kagawad", committee: "Committee Chair on Agriculture", photo: "./src/components/photo/agri.png" },
+  { id: "k0", name: "LENY V. PANELO", role: "Barangay Secretary", photo: secPhoto },
+  { id: "k1", name: "REGINA ELENA O. DULAY", role: "Barangay Kagawad", committee: "Committee on Health", photo: chsPhoto },
+  { id: "k2", name: "GLORIA D. ALBAY", role: "Barangay Kagawad", committee: "Peace & Order", photo: cpoPhoto },
+  { id: "k3", name: "DOMINGO R. NARDO", role: "Barangay Kagawad", committee: "Committee Chair on Education", photo: eduPhoto },
+  { id: "k4", name: "SALOME B. ALOOT", role: "Barangay Kagawad", committee: "Committee Chair on Budget and Appropriation", photo: cbaPhoto },
+  { id: "k5", name: "JO ANN V. ALOOT", role: "Barangay Kagawad", committee: "Committee Chair on Livelihood", photo: livelihoodPhoto },
+  { id: "k6", name: "AGNES C. MACASIEB", role: "Barangay Kagawad", committee: "Treasurer", photo: treasurerPhoto },
+  { id: "k7", name: "AMADO R. ALOOT", role: "Barangay Kagawad", committee: "Committee Chair on Agriculture", photo: agriPhoto },
 ];
 
 export const sidebarLinks = [

@@ -1,4 +1,5 @@
 import React from "react";
+import barangaySeal from "../photo/logostarita.jpg";
 
 export default function GoodMoralTemplate({ data }) {
   const {
@@ -15,7 +16,7 @@ export default function GoodMoralTemplate({ data }) {
     <div className="doc-template-card" id="printable-document">
       {/* Official Header */}
       <div className="doc-header-official">
-        <img src="/src/components/photo/logostarita.jpg" alt="Barangay Official Seal" className="doc-seal-img" />
+        <img src={barangaySeal} alt="Barangay Official Seal" className="doc-seal-img" />
         <div className="doc-header-text">
           <p className="republic-line">REPUBLIC OF THE PHILIPPINES</p>
           <p>PROVINCE OF LA UNION</p>

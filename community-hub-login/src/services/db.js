@@ -1,4 +1,7 @@
 
+import annImg from '../components/photo/annimg.jpg';
+import cleanImg from '../components/photo/clean.jpg';
+
 const STORAGE_KEYS = {
   REPORTS: "chub_db_reports",
   DOC_REQUESTS: "chub_db_doc_requests",
@@ -45,7 +48,7 @@ const INITIAL_ANNOUNCEMENTS = [
     author: "Committee on Health",
     content: "Free checkups, dental extractions, and basic prescription medicines will be provided to registered residents. Please bring a valid Barangay ID or Certificate of Residency.",
     badge: "Public Service",
-    image: './src/components/photo/annimg.jpg',
+    image: annImg,
   },
   {
     id: "ANN-3",
@@ -57,7 +60,7 @@ const INITIAL_ANNOUNCEMENTS = [
     author: "SK Youth Council",
     content: "Join our monthly coastal & street clean-up drive. Cleaning tools, gloves, and refreshments will be provided for all volunteers.",
     badge: "Volunteer",
-    image: "./src/components/photo/clean.jpg",
+    image: cleanImg,
   },
 ];
 
@@ -207,7 +210,16 @@ export const DB = {
         localStorage.setItem(STORAGE_KEYS.ANNOUNCEMENTS, JSON.stringify(INITIAL_ANNOUNCEMENTS));
         return INITIAL_ANNOUNCEMENTS;
       }
-      return JSON.parse(data);
+      const list = JSON.parse(data);
+      return list.map((item) => {
+        let img = item.image;
+        if (img && (img.includes("annimg.jpg") || img === "./src/components/photo/annimg.jpg")) {
+          img = annImg;
+        } else if (img && (img.includes("clean.jpg") || img === "./src/components/photo/clean.jpg")) {
+          img = cleanImg;
+        }
+        return { ...item, image: img };
+      });
     } catch (e) {
       return INITIAL_ANNOUNCEMENTS;
     }

@@ -13,7 +13,7 @@ import Reports from "./pages/Reports";
 import RequestDocument from "./pages/RequestDocument";
 import Profile from "./pages/Profile";
 import Placeholder from "./pages/Placeholder";
-import Chats from "./Chats";
+import Chats from "./components/chats/Chats";
 import FindFriendsPage from "./components/friends/FindFriendsPage";
 import AnnouncementsPage from "./components/announcements/AnnouncementsPage";
 import EventsPage from "./components/events/EventsPage";

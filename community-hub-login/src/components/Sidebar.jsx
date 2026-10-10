@@ -58,7 +58,7 @@ export default function Sidebar() {
         <div className="sidebar__brand" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
           <div className="sidebar__logo">
             <img
-              src="/src/components/photo/logostarita.jpg"
+              src={barangay.photo || "/photo/logostarita.jpg"}
               alt="Barangay Sta. Rita Logo"
               className="sidebar__logo-img"
             />

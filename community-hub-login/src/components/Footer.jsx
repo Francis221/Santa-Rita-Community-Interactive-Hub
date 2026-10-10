@@ -1,6 +1,7 @@
 import React from "react";
 import { Mail, Phone, MapPin } from "lucide-react";
 import { barangay } from "../constants/hubConfig";
+import communityLogo from "../logo/community-c-logo-transparent.png";
 import "./Footer.css";
 
 const quickLinks = ["Profile", "Announcements", "Projects", "Reports", "Request Document"];
@@ -12,7 +13,7 @@ export default function Footer() {
         <div className="footer__about">
           <div className="footer__brand">
             <div className="footer__logo" aria-hidden="true">
-              <img src="./src/logo/community-c-logo-transparent.png" alt="Barangay Logo" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
+              <img src={communityLogo} alt="Barangay Logo" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
             </div>
             <div>
               <p className="footer__brand-name">Barangay {barangay.name}</p>

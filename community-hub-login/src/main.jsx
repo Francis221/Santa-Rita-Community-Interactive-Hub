@@ -2,12 +2,11 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import App from './App.jsx';
-import Login from './Login.jsx';
+import Login from './components/login/Login.jsx';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import './styles/homemain.css';
 import './styles/home.css';
-import './loginmain.css';
-import './login.css';
+import './components/login/Login.css';
 
 function MainRouter() {
   const { user, loading } = useAuth();

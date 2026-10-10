@@ -4,6 +4,7 @@ import { Search, Bell, HelpCircle, ShieldCheck, UserPlus, LogOut } from "lucide-
 import { navLinks } from "../constants/hubConfig";
 import { useAuth } from "../context/AuthContext";
 import { DB } from "../services/db";
+import communityLogo from "../logo/community-c-logo-transparent.png";
 import "./Navbar.css";
 
 export default function Navbar() {
@@ -29,7 +30,7 @@ export default function Navbar() {
     <header className="navbar">
       <div className="navbar__brand" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
         <span className="navbar__mark">
-          <img src="./src/logo/community-c-logo-transparent.png" alt="Barangay Logo" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />
+          <img src={communityLogo} alt="Barangay Logo" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />
         </span>
         <span className="navbar__name">Community Hub</span>
       </div>
