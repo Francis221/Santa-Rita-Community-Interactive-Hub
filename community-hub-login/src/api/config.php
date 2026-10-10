@@ -50,11 +50,23 @@ if (php_sapi_name() !== 'cli') {
 }
 
 // ---- Database Connection Config ----
-$dbHost = getenv('DB_HOST') ?: '127.0.0.1';
-$dbName = getenv('DB_NAME') ?: 'login_system';
-$dbUser = getenv('DB_USER') ?: 'root';
-$dbPass = getenv('DB_PASS') !== false ? getenv('DB_PASS') : '';
-$dbPort = getenv('DB_PORT') ?: '3306';
+// Detect if running locally or on InfinityFree remote server
+$isLocalhost = in_array($_SERVER['SERVER_NAME'] ?? '', ['127.0.0.1', 'localhost']) || (php_sapi_name() === 'cli' && empty(getenv('DB_HOST')));
+
+if ($isLocalhost && !getenv('DB_HOST')) {
+    $dbHost = '127.0.0.1';
+    $dbName = 'login_system';
+    $dbUser = 'root';
+    $dbPass = '';
+    $dbPort = '3306';
+} else {
+    // InfinityFree Live Cloud MySQL Details
+    $dbHost = getenv('DB_HOST') ?: 'sql302.infinityfree.com';
+    $dbName = getenv('DB_NAME') ?: 'if0_43140654_login_system';
+    $dbUser = getenv('DB_USER') ?: 'if0_43140654';
+    $dbPass = getenv('DB_PASS') !== false && getenv('DB_PASS') !== '' ? getenv('DB_PASS') : 'tr2Rcq8LuP7tX';
+    $dbPort = getenv('DB_PORT') ?: '3306';
+}
 
 try {
     $db = new PDO("mysql:host={$dbHost};port={$dbPort};dbname={$dbName};charset=utf8mb4", $dbUser, $dbPass, [
