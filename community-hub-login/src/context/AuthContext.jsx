@@ -62,7 +62,7 @@ export function AuthProvider({ children }) {
     };
 
     sendHeartbeat();
-    const interval = setInterval(sendHeartbeat, 25000);
+    const interval = setInterval(sendHeartbeat, 4000);
     return () => clearInterval(interval);
   }, [user?.id, user?.username]);
 

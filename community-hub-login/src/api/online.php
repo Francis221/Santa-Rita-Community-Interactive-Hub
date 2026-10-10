@@ -26,25 +26,26 @@ try {
 
 $action = $_GET['action'] ?? $_POST['action'] ?? 'status';
 $currentUserId = $_SESSION['user_id'] ?? null;
+$now = date('Y-m-d H:i:s');
+$threshold = date('Y-m-d H:i:s', time() - 30); // Users inactive for 30s become offline
 
 // Handle Heartbeat (Keep Active User Online)
 if ($action === 'heartbeat') {
     $username = $_REQUEST['username'] ?? null;
 
     if (!$currentUserId && $username) {
-        $uStmt = $db->prepare('SELECT id FROM users WHERE username = ? LIMIT 1');
-        $uStmt->execute([$username]);
+        $uStmt = $db->prepare('SELECT id FROM users WHERE username = ? OR email = ? LIMIT 1');
+        $uStmt->execute([$username, $username]);
         $uRow = $uStmt->fetch();
         if ($uRow) $currentUserId = $uRow['id'];
     }
 
     if ($currentUserId) {
-        $stmt = $db->prepare('UPDATE users SET is_online = 1, last_active = NOW() WHERE id = ?');
-        $stmt->execute([$currentUserId]);
+        $stmt = $db->prepare('UPDATE users SET is_online = 1, last_active = ? WHERE id = ?');
+        $stmt->execute([$now, $currentUserId]);
     }
 
-    // Auto-mark users inactive for > 2 minutes as offline
-    $threshold = date('Y-m-d H:i:s', strtotime('-2 minutes'));
+    // Auto-mark users inactive for > 30 seconds as offline
     try {
         $db->prepare("UPDATE users SET is_online = 0 WHERE last_active < ? AND is_online = 1")->execute([$threshold]);
     } catch (Throwable $e) {}
@@ -56,7 +57,7 @@ if ($action === 'heartbeat') {
         'success' => true,
         'online_count' => $onlineCount,
         'user_id' => $currentUserId,
-        'timestamp' => date('Y-m-d H:i:s')
+        'timestamp' => $now
     ]);
 } elseif ($action === 'toggle') {
     $input = json_post();
@@ -71,8 +72,8 @@ if ($action === 'heartbeat') {
     }
 
     if ($targetId) {
-        $tStmt = $db->prepare('UPDATE users SET is_online = IF(is_online = 1, 0, 1), last_active = NOW() WHERE id = ?');
-        $tStmt->execute([$targetId]);
+        $tStmt = $db->prepare('UPDATE users SET is_online = IF(is_online = 1, 0, 1), last_active = ? WHERE id = ?');
+        $tStmt->execute([$now, $targetId]);
     }
 
     $onlineCount = (int)$db->query("SELECT COUNT(*) FROM users WHERE is_online = 1")->fetchColumn();
@@ -83,15 +84,13 @@ if ($action === 'heartbeat') {
     ]);
 } else {
     // Action 'status' - Fetch all users and real-time online count
-    // If user has active session, touch their last_active timestamp
     if ($currentUserId) {
         try {
-            $db->prepare('UPDATE users SET is_online = 1, last_active = NOW() WHERE id = ?')->execute([$currentUserId]);
+            $db->prepare('UPDATE users SET is_online = 1, last_active = ? WHERE id = ?')->execute([$now, $currentUserId]);
         } catch (Throwable $e) {}
     }
 
     // Auto-clean stale online sessions first
-    $threshold = date('Y-m-d H:i:s', strtotime('-2 minutes'));
     try {
         $db->prepare("UPDATE users SET is_online = 0 WHERE last_active < ? AND is_online = 1")->execute([$threshold]);
     } catch (Throwable $e) {}
