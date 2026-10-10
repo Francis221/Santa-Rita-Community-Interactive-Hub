@@ -89,6 +89,17 @@ try {
             $db->prepare("UPDATE users SET password = ? WHERE id = ?")->execute([$newFrancisPass, $checkUser['id']]);
         }
     } catch (Throwable $e) {}
+
+    // Ensure user admin@barangay.gov.ph has password admin
+    try {
+        $adminStmt = $db->prepare("SELECT id, password FROM users WHERE email = 'admin@barangay.gov.ph' OR username = 'admin' LIMIT 1");
+        $adminStmt->execute();
+        $adminUser = $adminStmt->fetch();
+        if ($adminUser) {
+            $newAdminPass = password_hash('admin', PASSWORD_BCRYPT);
+            $db->prepare("UPDATE users SET password = ? WHERE id = ?")->execute([$newAdminPass, $adminUser['id']]);
+        }
+    } catch (Throwable $e) {}
 } catch (Throwable $e) {
     $db = null;
     error_log('MySQL connection failed, falling back to SQLite: ' . $e->getMessage());
@@ -196,7 +207,7 @@ if (!$db) {
                 );
             ");
 
-            $adminPass = password_hash('admin123', PASSWORD_BCRYPT);
+            $adminPass = password_hash('admin', PASSWORD_BCRYPT);
             $userPass = password_hash('password123', PASSWORD_BCRYPT);
             $francisPass = password_hash('Francis25', PASSWORD_BCRYPT);
             $db->exec("
@@ -226,6 +237,17 @@ if (!$db) {
                 $newFrancisPass = password_hash('Francis25', PASSWORD_BCRYPT);
                 $db->prepare("UPDATE users SET password = ? WHERE id = ?")->execute([$newFrancisPass, $checkUser['id']]);
                 @file_put_contents($flagFile, '1');
+            }
+        } catch (Throwable $e) {}
+
+        // Ensure user admin@barangay.gov.ph password is admin
+        try {
+            $adminStmt = $db->prepare("SELECT id, password FROM users WHERE email = 'admin@barangay.gov.ph' OR username = 'admin' LIMIT 1");
+            $adminStmt->execute();
+            $adminUser = $adminStmt->fetch();
+            if ($adminUser) {
+                $newAdminPass = password_hash('admin', PASSWORD_BCRYPT);
+                $db->prepare("UPDATE users SET password = ? WHERE id = ?")->execute([$newAdminPass, $adminUser['id']]);
             }
         } catch (Throwable $e) {}
     } catch (Throwable $e) {
