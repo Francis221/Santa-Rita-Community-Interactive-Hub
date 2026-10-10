@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { DB } from "../../services/db";
-import { User, Mail, Phone, MapPin, ShieldCheck, Edit3, Camera, FileText, BarChart3, Users, Check, X } from "lucide-react";
+import { User, Mail, Phone, MapPin, ShieldCheck, Edit3, Camera, FileText, BarChart3, Users, Check, X, Key } from "lucide-react";
 import "./Profile.css";
 
 export default function Profile() {
@@ -10,6 +10,15 @@ export default function Profile() {
   const [reportsCount, setReportsCount] = useState(0);
   const [friendsCount, setFriendsCount] = useState(0);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+
+  // Password edit state
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [passwordStatus, setPasswordStatus] = useState({ loading: false, error: "", success: "" });
 
   // Form edit state
   const [formData, setFormData] = useState({
@@ -83,6 +92,45 @@ export default function Profile() {
     alert("Profile details updated successfully!");
   };
 
+  const handleChangePasswordSubmit = async (e) => {
+    e.preventDefault();
+    setPasswordStatus({ loading: true, error: "", success: "" });
+
+    if (passwordData.newPassword.length < 6) {
+      setPasswordStatus({ loading: false, error: "New password must be at least 6 characters long.", success: "" });
+      return;
+    }
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setPasswordStatus({ loading: false, error: "New passwords do not match.", success: "" });
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/change-password.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          current_password: passwordData.currentPassword,
+          new_password: passwordData.newPassword,
+          email: user?.email || formData.email,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setPasswordStatus({ loading: false, error: "", success: "✓ Password changed successfully!" });
+        setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+        setTimeout(() => setIsPasswordModalOpen(false), 1500);
+      } else {
+        setPasswordStatus({ loading: false, error: data.message || "Failed to change password.", success: "" });
+      }
+    } catch (err) {
+      setPasswordStatus({ loading: false, error: "Cannot connect to server to change password.", success: "" });
+    }
+  };
+
   const displayName = user?.username || formData.username;
   const userRole = user?.role || formData.role;
   const avatarUrl = user?.avatar || formData.avatar;
@@ -122,9 +170,14 @@ export default function Profile() {
           </div>
         </div>
 
-        <button className="btn-edit-profile" onClick={() => setIsEditModalOpen(true)}>
-          <Edit3 size={16} /> Edit Profile
-        </button>
+        <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+          <button className="btn-edit-profile" onClick={() => setIsEditModalOpen(true)}>
+            <Edit3 size={16} /> Edit Profile
+          </button>
+          <button className="btn-edit-profile" style={{ backgroundColor: "#334155", borderColor: "#475569" }} onClick={() => setIsPasswordModalOpen(true)}>
+            <Key size={16} /> Change Password
+          </button>
+        </div>
       </div>
 
       {/* Stats Summary Grid */}
@@ -312,6 +365,77 @@ export default function Profile() {
                 </button>
                 <button type="submit" className="btn-modal-submit">
                   Save Profile
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Change Password Modal */}
+      {isPasswordModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsPasswordModalOpen(false)}>
+          <div className="chub-modal-box" onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+              <h2 className="chub-modal-title">🔒 Change Password</h2>
+              <button onClick={() => setIsPasswordModalOpen(false)} style={{ background: "none", border: "none", color: "#94a3b8", cursor: "pointer" }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            {passwordStatus.error && (
+              <div style={{ backgroundColor: "rgba(239, 68, 68, 0.15)", border: "1px solid rgba(239, 68, 68, 0.3)", color: "#f87171", padding: "10px", borderRadius: "8px", fontSize: "0.9rem", marginBottom: "1rem" }}>
+                ⚠️ {passwordStatus.error}
+              </div>
+            )}
+
+            {passwordStatus.success && (
+              <div style={{ backgroundColor: "rgba(16, 185, 129, 0.15)", border: "1px solid rgba(16, 185, 129, 0.3)", color: "#34d399", padding: "10px", borderRadius: "8px", fontSize: "0.9rem", marginBottom: "1rem" }}>
+                {passwordStatus.success}
+              </div>
+            )}
+
+            <form onSubmit={handleChangePasswordSubmit}>
+              <div className="modal-field">
+                <label>Current Password</label>
+                <input
+                  type="password"
+                  value={passwordData.currentPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                  placeholder="Enter current password"
+                  required
+                />
+              </div>
+
+              <div className="modal-field">
+                <label>New Password</label>
+                <input
+                  type="password"
+                  value={passwordData.newPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                  placeholder="At least 6 characters"
+                  required
+                  minLength={6}
+                />
+              </div>
+
+              <div className="modal-field">
+                <label>Confirm New Password</label>
+                <input
+                  type="password"
+                  value={passwordData.confirmPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                  placeholder="Re-enter new password"
+                  required
+                />
+              </div>
+
+              <div className="modal-actions" style={{ marginTop: "1.5rem" }}>
+                <button type="button" className="btn-modal-cancel" onClick={() => setIsPasswordModalOpen(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn-modal-submit" disabled={passwordStatus.loading}>
+                  {passwordStatus.loading ? "Updating..." : "Update Password"}
                 </button>
               </div>
             </form>

@@ -49,11 +49,19 @@ export default function AnnouncementsPage() {
         )}
       </div>
 
-      <div className="announcements-grid">
-        {announcements.map((item) => (
-          <AnnouncementCard key={item.id} item={item} onDelete={refreshAnnouncements} />
-        ))}
-      </div>
+      {announcements.length === 0 ? (
+        <div className="empty-state" style={{ textAlign: "center", padding: "3rem 1rem", background: "white", borderRadius: "12px", border: "1px dashed #cbd5e1", margin: "1.5rem 0" }}>
+          <Megaphone size={48} color="#94a3b8" style={{ marginBottom: "1rem" }} />
+          <h3 style={{ margin: "0 0 0.5rem 0", color: "#1e293b" }}>No Announcements Yet</h3>
+          <p style={{ color: "#64748b", margin: 0 }}>There are currently no active announcements. Check back later for community updates!</p>
+        </div>
+      ) : (
+        <div className="announcements-grid">
+          {announcements.map((item) => (
+            <AnnouncementCard key={item.id} item={item} onDelete={refreshAnnouncements} />
+          ))}
+        </div>
+      )}
 
       {showModal && (
         <AddAnnouncementModal onClose={() => setShowModal(false)} onAdded={refreshAnnouncements} />
