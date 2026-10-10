@@ -51,6 +51,21 @@ export function AuthProvider({ children }) {
     checkAuth();
   }, []);
 
+  // Global heartbeat interval to maintain accurate online status across pages
+  useEffect(() => {
+    if (!user) return;
+
+    const sendHeartbeat = () => {
+      fetch(`/api/online.php?action=heartbeat&username=${encodeURIComponent(user.username || '')}`, { credentials: 'include' })
+        .then(() => DB.fetchUsersFromApi())
+        .catch(() => {});
+    };
+
+    sendHeartbeat();
+    const interval = setInterval(sendHeartbeat, 25000);
+    return () => clearInterval(interval);
+  }, [user?.id, user?.username]);
+
   const demoLogin = (role = 'Resident') => {
     const demoUser = role === 'Admin' ? {
       id: 100,

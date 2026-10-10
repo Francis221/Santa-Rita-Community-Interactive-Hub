@@ -406,7 +406,7 @@ export const DB = {
               avatar: u.avatar || (existing ? existing.avatar : "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80"),
               isFriend: existing ? existing.isFriend : (u.username?.toLowerCase() === "justinryan" || u.username?.toLowerCase() === "admin" || u.username?.toLowerCase() === "francis"),
               status: existing ? existing.status : (u.username?.toLowerCase() === "justinryan" || u.username?.toLowerCase() === "admin" || u.username?.toLowerCase() === "francis" ? "accepted" : "none"),
-              isOnline: isDbOnline || isToggled,
+              isOnline: isDbOnline,
               isToggledOnline: isToggled,
             };
           });
@@ -454,8 +454,8 @@ export const DB = {
 
   getOnlineCount: () => {
     const residents = DB.getResidents();
-    const count = residents.filter((r) => Boolean(r.isOnline || r.isToggledOnline)).length;
-    return Math.max(1, count);
+    const count = residents.filter((r) => Boolean(r.isOnline)).length;
+    return count;
   },
 
   toggleResidentOnline: (id) => {
