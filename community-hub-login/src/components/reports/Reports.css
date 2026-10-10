@@ -61,6 +61,17 @@
   box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
 }
 
+.btn-report--delete {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #f87171;
+}
+
+.btn-report--delete:hover {
+  background: rgba(239, 68, 68, 0.25);
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.3);
+}
+
 .btn-report--settle {
   background: rgba(99, 102, 241, 0.12);
   border-color: rgba(99, 102, 241, 0.5);

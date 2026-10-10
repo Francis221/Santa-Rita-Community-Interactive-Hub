@@ -3,6 +3,7 @@ import { DB } from "../../services/db";
 import AddReportModal from "./AddReportModal";
 import EditReportModal from "./EditReportModal";
 import SettleReportModal from "./SettleReportModal";
+import DeleteReportModal from "./DeleteReportModal";
 import RequestDocsModal from "./RequestDocsModal";
 import MonthlyReportsChart from "./MonthlyReportsChart";
 import { Trash2 } from "lucide-react";
@@ -13,7 +14,7 @@ export default function Reports() {
   const { user } = useAuth();
   const isAdmin = user?.role === "Admin";
   const [reports, setReports] = useState([]);
-  const [activeModal, setActiveModal] = useState(null); // 'add', 'edit', 'settle', 'docs', or null
+  const [activeModal, setActiveModal] = useState(null); // 'add', 'edit', 'settle', 'delete', 'docs', or null
 
   const refreshReports = () => {
     setReports(DB.getReports());
@@ -63,6 +64,14 @@ export default function Reports() {
             onClick={() => setActiveModal("add")}
           >
             Add Report
+          </button>
+
+          <button
+            className="btn-report btn-report--delete"
+            onClick={() => setActiveModal("delete")}
+          >
+            <Trash2 size={16} />
+            Delete Report
           </button>
 
           {isAdmin && (
@@ -229,6 +238,14 @@ export default function Reports() {
           reports={reports}
           onClose={() => setActiveModal(null)}
           onReportSettled={refreshReports}
+        />
+      )}
+
+      {activeModal === "delete" && (
+        <DeleteReportModal
+          reports={reports}
+          onClose={() => setActiveModal(null)}
+          onReportDeleted={refreshReports}
         />
       )}
 
