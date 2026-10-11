@@ -48,7 +48,9 @@ export default function Sidebar() {
 
   return (
     <>
+      {/* Desktop Sidebar Navigation Container */}
       <aside className="sidebar">
+        {/* Barangay Branding Header (Clicking navigates to Home) */}
         <div className="sidebar__brand" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
           <div className="sidebar__logo">
             <img
@@ -64,17 +66,20 @@ export default function Sidebar() {
           <p className="sidebar__subtitle">{barangay.municipality.toUpperCase()}</p>
         </div>
 
-        <nav className="sidebar__nav" aria-label="Main">
+        {/* Primary Sidebar Navigation Menu */}
+        <nav className="sidebar__nav" aria-label="Sidebar Main Navigation">
           <ul>
             {visibleLinks.map((link) => {
               const Icon = ICONS[link.icon] || User;
               return (
                 <li key={link.id}>
+                  {/* Navigation link for each specific module */}
                   <NavLink
                     to={link.to}
                     className={({ isActive }) =>
                       "sidebar__link" + (isActive ? " sidebar__link--active" : "")
                     }
+                    title={`Go to ${link.label}`}
                   >
                     <Icon size={18} strokeWidth={1.8} />
                     <span>{link.label}</span>
@@ -85,17 +90,20 @@ export default function Sidebar() {
           </ul>
         </nav>
 
+        {/* Button to open logout modal */}
         <button
           className="sidebar__logout"
           type="button"
           onClick={() => setIsLogoutModalOpen(true)}
           title="Sign out of Community Hub"
+          aria-label="Log Out of system"
         >
           <LogOut size={18} strokeWidth={1.8} />
           <span>Log out</span>
         </button>
       </aside>
 
+      {/* Logout confirmation modal dialog */}
       <LogoutModal
         isOpen={isLogoutModalOpen}
         onClose={() => setIsLogoutModalOpen(false)}

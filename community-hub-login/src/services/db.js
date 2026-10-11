@@ -1,6 +1,100 @@
-
 import annImg from '../components/photo/annimg.jpg';
 import cleanImg from '../components/photo/clean.jpg';
+import genassembly from '../components/photo/genassembly.jpg';
+
+export const resolveAnnouncementImage = (item) => {
+  if (!item) return genassembly;
+  const id = String(item.id || item.announcement_code || "");
+  const title = String(item.title || "").toLowerCase();
+  const rawImg = typeof item.image === "string" ? item.image : "";
+
+  // 1. Barangay General Assembly -> genassembly.jpg
+  if (
+    id === "ANN-1" ||
+    title.includes("general assembly") ||
+    title.includes("town hall") ||
+    rawImg.includes("genassembly") ||
+    rawImg.includes("photo-1577962917302")
+  ) {
+    return genassembly;
+  }
+
+  // 2. Free Medical & Dental Mission -> annImg
+  if (
+    id === "ANN-2" ||
+    title.includes("medical") ||
+    title.includes("dental") ||
+    rawImg.includes("annimg") ||
+    rawImg.includes("photo-1584515979956")
+  ) {
+    return annImg;
+  }
+
+  // 3. Clean-Up Drive & Environmental Awareness -> cleanImg
+  if (
+    id === "ANN-3" ||
+    title.includes("clean-up") ||
+    title.includes("clean up") ||
+    title.includes("environmental") ||
+    rawImg.includes("clean") ||
+    rawImg.includes("photo-1532996122724")
+  ) {
+    return cleanImg;
+  }
+
+  // Remove any external URL links (e.g. Unsplash or HTTP links) in announcements
+  if (rawImg.includes("unsplash.com") || rawImg.startsWith("http://") || rawImg.startsWith("https://")) {
+    return genassembly;
+  }
+
+  // 4. Custom user uploaded photo (e.g. data:image/... base64)
+  if (rawImg && rawImg.trim().length > 0) {
+    return rawImg;
+  }
+
+  return genassembly;
+};
+
+export const resolveEventImage = (item) => {
+  if (!item) return annImg;
+  const id = String(item.id || "");
+  const title = String(item.title || "").toLowerCase();
+  const category = String(item.category || "").toLowerCase();
+  const rawImg = typeof item.image === "string" ? item.image : "";
+
+  // 1. Senior Citizens Wellness Checkup & Pension Payout (Senior Affairs) -> annImg
+  if (
+    id === "EVT-2" ||
+    title.includes("senior citizens") ||
+    title.includes("wellness checkup") ||
+    title.includes("pension payout") ||
+    category.includes("senior affairs") ||
+    rawImg.includes("annimg") ||
+    rawImg.includes("photo-1576765608535")
+  ) {
+    return annImg;
+  }
+
+  // 2. Disaster Preparedness & Fire Safety Drill (Safety) -> cleanImg
+  if (
+    id === "EVT-3" ||
+    title.includes("disaster") ||
+    title.includes("fire safety") ||
+    category.includes("safety") ||
+    rawImg.includes("clean") ||
+    rawImg.includes("photo-1509099836639")
+  ) {
+    return cleanImg;
+  }
+
+  // If rawImg is a valid non-stale custom image
+  if (rawImg && rawImg.trim().length > 0 && !rawImg.includes("unsplash.com/photo-1576765608535") && !rawImg.includes("unsplash.com/photo-1509099836639")) {
+    return rawImg;
+  }
+
+  return item.image || annImg;
+};
+
 
 const STORAGE_KEYS = {
   REPORTS: "chub_db_reports",
@@ -11,6 +105,36 @@ const STORAGE_KEYS = {
   EVENTS: "chub_db_events",
   RESIDENTS: "chub_db_residents",
 };
+
+// Proactively update any cached announcements in localStorage with the true images
+try {
+  const cachedData = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEYS.ANNOUNCEMENTS) : null;
+  if (cachedData) {
+    const parsed = JSON.parse(cachedData);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      const cleaned = parsed.map((item) => ({
+        ...item,
+        image: resolveAnnouncementImage(item),
+      }));
+      localStorage.setItem(STORAGE_KEYS.ANNOUNCEMENTS, JSON.stringify(cleaned));
+    }
+  }
+} catch (e) { }
+
+// Proactively update any cached events in localStorage with the true images
+try {
+  const cachedEvents = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEYS.EVENTS) : null;
+  if (cachedEvents) {
+    const parsed = JSON.parse(cachedEvents);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      const cleaned = parsed.map((item) => ({
+        ...item,
+        image: resolveEventImage(item),
+      }));
+      localStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(cleaned));
+    }
+  }
+} catch (e) { }
 
 const DEFAULT_STATS = {
   population: "12,480",
@@ -36,7 +160,7 @@ const INITIAL_ANNOUNCEMENTS = [
     author: "Barangay Council",
     content: "All residents of Sta. Rita Central are invited to attend the quarterly General Assembly to discuss upcoming community infrastructure programs, security measures, and public health updates.",
     badge: "Important",
-    image: "https://images.unsplash.com/photo-1577962917302-cd874c4e31d2?w=800&auto=format&fit=crop&q=80",
+    image: genassembly,
   },
   {
     id: "ANN-2",
@@ -87,7 +211,7 @@ const INITIAL_EVENTS = [
     organizer: "Office for Senior Citizens Affairs",
     description: "Monthly social pension payout and free blood pressure & glucose screening for seniors.",
     attendeesCount: 88,
-    image: "https://images.unsplash.com/photo-1576765608535-5f04d1e3f289?w=800&auto=format&fit=crop&q=80",
+    image: annImg,
   },
   {
     id: "EVT-3",
@@ -99,7 +223,7 @@ const INITIAL_EVENTS = [
     organizer: "BFP & Barangay Tanod Unit",
     description: "Hands-on fire extinguisher usage demonstration, earthquake drill, and emergency kit prep tutorial.",
     attendeesCount: 65,
-    image: "https://images.unsplash.com/photo-1509099836639-18ba1795216d?w=800&auto=format&fit=crop&q=80",
+    image: cleanImg,
   },
 ];
 
@@ -198,7 +322,7 @@ export const DB = {
           return data.stats;
         }
       }
-    } catch (e) {}
+    } catch (e) { }
     return null;
   },
 
@@ -211,14 +335,12 @@ export const DB = {
         return INITIAL_ANNOUNCEMENTS;
       }
       const list = JSON.parse(data);
+      if (!Array.isArray(list) || list.length === 0) {
+        localStorage.setItem(STORAGE_KEYS.ANNOUNCEMENTS, JSON.stringify(INITIAL_ANNOUNCEMENTS));
+        return INITIAL_ANNOUNCEMENTS;
+      }
       return list.map((item) => {
-        let img = item.image;
-        if (img && (img.includes("annimg.jpg") || img === "./src/components/photo/annimg.jpg")) {
-          img = annImg;
-        } else if (img && (img.includes("clean.jpg") || img === "./src/components/photo/clean.jpg")) {
-          img = cleanImg;
-        }
-        return { ...item, image: img };
+        return { ...item, image: resolveAnnouncementImage(item) };
       });
     } catch (e) {
       return INITIAL_ANNOUNCEMENTS;
@@ -231,12 +353,16 @@ export const DB = {
       if (res.ok) {
         const data = await res.json();
         if (data && data.success && Array.isArray(data.announcements) && data.announcements.length > 0) {
-          localStorage.setItem(STORAGE_KEYS.ANNOUNCEMENTS, JSON.stringify(data.announcements));
+          const mapped = data.announcements.map((item) => ({
+            ...item,
+            image: resolveAnnouncementImage(item)
+          }));
+          localStorage.setItem(STORAGE_KEYS.ANNOUNCEMENTS, JSON.stringify(mapped));
           window.dispatchEvent(new Event("announcementsUpdated"));
-          return data.announcements;
+          return mapped;
         }
       }
-    } catch (e) {}
+    } catch (e) { }
     return DB.getAnnouncements();
   },
 
@@ -252,7 +378,7 @@ export const DB = {
       author: announcement.author || "Barangay Admin",
       content: announcement.content || "",
       badge: announcement.badge || "Notice",
-      image: announcement.image || "https://images.unsplash.com/photo-1577962917302-cd874c4e31d2?w=800&auto=format&fit=crop&q=80",
+      image: announcement.image || genassembly,
     };
     const updated = [newItem, ...items];
     localStorage.setItem(STORAGE_KEYS.ANNOUNCEMENTS, JSON.stringify(updated));
@@ -264,8 +390,8 @@ export const DB = {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify(newItem)
-      }).catch(() => {});
-    } catch (e) {}
+      }).catch(() => { });
+    } catch (e) { }
 
     return newItem;
   },
@@ -282,8 +408,8 @@ export const DB = {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ id })
-      }).catch(() => {});
-    } catch (e) {}
+      }).catch(() => { });
+    } catch (e) { }
 
     return updated;
   },
@@ -296,7 +422,15 @@ export const DB = {
         localStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(INITIAL_EVENTS));
         return INITIAL_EVENTS;
       }
-      return JSON.parse(data);
+      const list = JSON.parse(data);
+      if (!Array.isArray(list) || list.length === 0) {
+        localStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(INITIAL_EVENTS));
+        return INITIAL_EVENTS;
+      }
+      return list.map((item) => ({
+        ...item,
+        image: resolveEventImage(item),
+      }));
     } catch (e) {
       return INITIAL_EVENTS;
     }
@@ -391,12 +525,12 @@ export const DB = {
           try {
             const fJson = await resFriends.json();
             if (fJson && fJson.success) friendsData = fJson;
-          } catch (e) {}
+          } catch (e) { }
         }
 
         if (data && data.success && Array.isArray(data.users)) {
           const currentResidents = DB.getResidents();
-          
+
           // Construct resident list strictly from MySQL database users and backend friend status
           const updated = data.users.map((u) => {
             const uIdNum = Number(u.id);
@@ -468,8 +602,8 @@ export const DB = {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ friend_id: friendId })
-      }).catch(() => {});
-    } catch (e) {}
+      }).catch(() => { });
+    } catch (e) { }
 
     return updated;
   },
@@ -487,8 +621,8 @@ export const DB = {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ friend_id: friendId })
-      }).catch(() => {});
-    } catch (e) {}
+      }).catch(() => { });
+    } catch (e) { }
 
     return updated;
   },
@@ -506,8 +640,8 @@ export const DB = {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ friend_id: friendId })
-      }).catch(() => {});
-    } catch (e) {}
+      }).catch(() => { });
+    } catch (e) { }
 
     return updated;
   },
@@ -534,7 +668,7 @@ export const DB = {
     return updated;
   },
 
-  // Reports API
+  // Reports API: Retrieve list of incident reports from local cache
   getReports: () => {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.REPORTS);
@@ -548,51 +682,75 @@ export const DB = {
     }
   },
 
+  // Reports API: Fetch reports from backend API and merge with locally cached reports to avoid losing data
   fetchReportsFromApi: async () => {
     try {
       const res = await fetch('/api/reports.php', { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         if (data && data.success && Array.isArray(data.reports)) {
-          localStorage.setItem(STORAGE_KEYS.REPORTS, JSON.stringify(data.reports));
+          const localReports = DB.getReports();
+          // Smart merge: keep any local reports that are not yet in the API response
+          const apiIds = new Set(data.reports.map(r => r.id));
+          const unsynced = localReports.filter(lr => lr.id && !apiIds.has(lr.id));
+          const merged = [...unsynced, ...data.reports];
+          localStorage.setItem(STORAGE_KEYS.REPORTS, JSON.stringify(merged));
           window.dispatchEvent(new Event("reportsUpdated"));
-          return data.reports;
+          return merged;
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      // Backend offline or spinning up; continue serving local reports
+    }
     return DB.getReports();
   },
 
-  addReport: (newReport) => {
+  // Reports API: Add a new community case report (saves to localStorage immediately and syncs with backend API)
+  addReport: async (newReport) => {
     const reports = DB.getReports();
+    const generatedId = newReport.id || `REP-2026-${String(reports.length + 1).padStart(3, "0")}`;
     const formattedReport = {
-      id: `REP-2026-${String(reports.length + 1).padStart(3, "0")}`,
+      id: generatedId,
       title: newReport.caseType || newReport.title || "Incident Report",
-      caseType: newReport.caseType || "General Report",
+      caseType: newReport.caseType || newReport.title || "General Report",
       complainant: newReport.complainant || "Anonymous",
       respondent: newReport.respondent || "N/A",
       parties: `${newReport.complainant || "Anonymous"} vs. ${newReport.respondent || "N/A"}`,
       status: newReport.status || "Pending",
       dateFiled: newReport.dateFiled || new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }),
       purok: newReport.purok || "Purok 1",
+      details: newReport.details || newReport.description || "",
       description: newReport.details || newReport.description || "",
-      settlementDate: "",
-      settleBy: "",
-      resolutionSummary: "",
+      settlementDate: newReport.settlementDate || "",
+      settleBy: newReport.settleBy || "",
+      resolutionSummary: newReport.resolutionSummary || "",
     };
 
+    // Save locally first for instant, guaranteed availability
     const updated = [formattedReport, ...reports];
     localStorage.setItem(STORAGE_KEYS.REPORTS, JSON.stringify(updated));
     window.dispatchEvent(new Event("reportsUpdated"));
 
+    // Sync to backend PHP/MySQL or SQLite API
     try {
-      fetch('/api/reports.php?action=create', {
+      const res = await fetch('/api/reports.php?action=create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify(formattedReport)
-      }).catch(() => {});
-    } catch (e) {}
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.success && data.report) {
+          const current = DB.getReports();
+          const synced = current.map(r => r.id === formattedReport.id ? { ...r, ...data.report } : r);
+          localStorage.setItem(STORAGE_KEYS.REPORTS, JSON.stringify(synced));
+          window.dispatchEvent(new Event("reportsUpdated"));
+        }
+      }
+    } catch (e) {
+      console.warn("Could not sync report to backend API (stored safely in local storage):", e);
+    }
 
     return formattedReport;
   },
@@ -640,8 +798,8 @@ export const DB = {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ id, ...settlementData })
-      }).catch(() => {});
-    } catch (e) {}
+      }).catch(() => { });
+    } catch (e) { }
 
     return updated;
   },
@@ -658,13 +816,13 @@ export const DB = {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ id })
-      }).catch(() => {});
-    } catch (e) {}
+      }).catch(() => { });
+    } catch (e) { }
 
     return filtered;
   },
 
-  // Document Requests API
+  // Document Requests API: Retrieve document requests from local cache
   getDocumentRequests: () => {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.DOC_REQUESTS);
@@ -678,30 +836,38 @@ export const DB = {
     }
   },
 
+  // Document Requests API: Fetch from backend and merge with locally cached requests to avoid data loss
   fetchDocumentRequestsFromApi: async () => {
     try {
       const res = await fetch('/api/requests.php', { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         if (data && data.success && Array.isArray(data.requests)) {
-          localStorage.setItem(STORAGE_KEYS.DOC_REQUESTS, JSON.stringify(data.requests));
+          const localRequests = DB.getDocumentRequests();
+          const apiIds = new Set(data.requests.map(r => r.id));
+          const unsynced = localRequests.filter(lr => lr.id && !apiIds.has(lr.id));
+          const merged = [...unsynced, ...data.requests];
+          localStorage.setItem(STORAGE_KEYS.DOC_REQUESTS, JSON.stringify(merged));
           window.dispatchEvent(new Event("docRequestsUpdated"));
-          return data.requests;
+          return merged;
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      // Backend offline or spinning up; retain local requests
+    }
     return DB.getDocumentRequests();
   },
 
-  addDocumentRequest: (newRequest) => {
+  // Document Requests API: Add a new document request
+  addDocumentRequest: async (newRequest) => {
     const requests = DB.getDocumentRequests();
     const formatted = {
-      id: `DOC-2026-${String(requests.length + 101).padStart(3, "0")}`,
+      id: newRequest.id || `DOC-2026-${String(requests.length + 101).padStart(3, "0")}`,
       applicantName: (newRequest.applicantName || "FRANCIS REGIE DE GUZMAN").toUpperCase(),
       docType: newRequest.docType || "BARANGAY CLEARANCE",
       documentName: newRequest.documentName || "Barangay Clearance",
       status: newRequest.status || "Pending",
-      dateRequested: new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }),
+      dateRequested: newRequest.dateRequested || new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }),
       timeAgo: "Just now",
       address: newRequest.address || "Purok 3, Sta. Rita Central, Agoo, La Union",
       civilStatus: newRequest.civilStatus || "Single",
@@ -716,13 +882,24 @@ export const DB = {
     window.dispatchEvent(new Event("docRequestsUpdated"));
 
     try {
-      fetch('/api/requests.php?action=create', {
+      const res = await fetch('/api/requests.php?action=create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify(formatted)
-      }).catch(() => {});
-    } catch (e) {}
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.success && data.request) {
+          const current = DB.getDocumentRequests();
+          const synced = current.map(r => r.id === formatted.id ? { ...r, ...data.request } : r);
+          localStorage.setItem(STORAGE_KEYS.DOC_REQUESTS, JSON.stringify(synced));
+          window.dispatchEvent(new Event("docRequestsUpdated"));
+        }
+      }
+    } catch (e) {
+      console.warn("Could not sync doc request to backend API (stored safely in local storage):", e);
+    }
 
     return formatted;
   },
@@ -739,8 +916,8 @@ export const DB = {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ id, status })
-      }).catch(() => {});
-    } catch (e) {}
+      }).catch(() => { });
+    } catch (e) { }
 
     return updated;
   },

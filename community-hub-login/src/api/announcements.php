@@ -21,6 +21,12 @@ try {
         image LONGTEXT DEFAULT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+
+    // Clean up any old unsplash placeholder in the announcements table to use authentic community photos
+    $db->exec("UPDATE announcements SET image = './src/components/photo/genassembly.jpg' WHERE (announcement_code = 'ANN-1' OR title LIKE '%General Assembly%')");
+    $db->exec("UPDATE announcements SET image = './src/components/photo/annimg.jpg' WHERE (announcement_code = 'ANN-2' OR title LIKE '%Medical%')");
+    $db->exec("UPDATE announcements SET image = './src/components/photo/clean.jpg' WHERE (announcement_code = 'ANN-3' OR title LIKE '%Clean-Up%')");
+    $db->exec("UPDATE announcements SET image = './src/components/photo/genassembly.jpg' WHERE image LIKE '%unsplash%' OR image LIKE 'http%'");
 } catch (Throwable $e) {
     error_log('announcements table setup notice: ' . $e->getMessage());
 }
@@ -39,6 +45,9 @@ if ($action === 'create') {
     $content = trim($input['content'] ?? $_POST['content'] ?? $_REQUEST['content'] ?? '');
     $badge = trim($input['badge'] ?? $_POST['badge'] ?? $_REQUEST['badge'] ?? 'Notice');
     $image = $input['image'] ?? $_POST['image'] ?? $_REQUEST['image'] ?? null;
+    if ($image && (stripos($image, 'unsplash.com') !== false || stripos($image, 'http://') === 0 || stripos($image, 'https://') === 0)) {
+        $image = './src/components/photo/genassembly.jpg';
+    }
     $date = date('M d, Y');
 
     $code = 'ANN-' . rand(1000, 9999);
@@ -61,7 +70,7 @@ if ($action === 'create') {
             'author' => $author,
             'content' => $content,
             'badge' => $badge,
-            'image' => $image || 'https://images.unsplash.com/photo-1577962917302-cd874c4e31d2?w=800&auto=format&fit=crop&q=80'
+            'image' => $image ?: './src/components/photo/genassembly.jpg'
         ]
     ]);
 } elseif ($action === 'delete') {
@@ -84,6 +93,24 @@ if ($action === 'create') {
         'success' => true,
         'count' => count($items),
         'announcements' => array_map(function($a) {
+            $img = $a['image'];
+            // Strip any external link / unsplash link and replace with authentic community photo
+            if (!$img || stripos($img, 'unsplash') !== false || stripos($img, 'http://') === 0 || stripos($img, 'https://') === 0) {
+                if ($a['announcement_code'] === 'ANN-2' || stripos($a['title'], 'Medical') !== false) {
+                    $img = './src/components/photo/annimg.jpg';
+                } elseif ($a['announcement_code'] === 'ANN-3' || stripos($a['title'], 'Clean-Up') !== false) {
+                    $img = './src/components/photo/clean.jpg';
+                } else {
+                    $img = './src/components/photo/genassembly.jpg';
+                }
+            } elseif ($a['announcement_code'] === 'ANN-1' || stripos($a['title'], 'General Assembly') !== false) {
+                $img = './src/components/photo/genassembly.jpg';
+            } elseif ($a['announcement_code'] === 'ANN-2' || stripos($a['title'], 'Medical') !== false) {
+                $img = './src/components/photo/annimg.jpg';
+            } elseif ($a['announcement_code'] === 'ANN-3' || stripos($a['title'], 'Clean-Up') !== false) {
+                $img = './src/components/photo/clean.jpg';
+            }
+
             return [
                 'id' => $a['announcement_code'],
                 'db_id' => (int)$a['id'],
@@ -95,7 +122,7 @@ if ($action === 'create') {
                 'author' => $a['author'],
                 'content' => $a['content'],
                 'badge' => $a['badge'],
-                'image' => $a['image'] ?: 'https://images.unsplash.com/photo-1577962917302-cd874c4e31d2?w=800&auto=format&fit=crop&q=80'
+                'image' => $img
             ];
         }, $items)
     ]);

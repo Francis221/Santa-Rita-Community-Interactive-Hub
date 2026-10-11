@@ -24,9 +24,12 @@ export default function RequestDocsModal({ onClose, onRequestUpdated }) {
   };
 
   return (
+    /* Modal Backdrop Overlay */
     <div className="modal-overlay" onClick={onClose}>
+      {/* Modal Dialog Card */}
       <div className="chub-modal" onClick={(e) => e.stopPropagation()}>
-        <button className="chub-modal__close" onClick={onClose}>✕</button>
+        {/* Button to close Request Documents modal */}
+        <button className="chub-modal__close" onClick={onClose} aria-label="Close modal" title="Close modal">✕</button>
         <h2 className="chub-modal__title">REQUEST DOCUMENTS</h2>
 
         <div className="req-docs-list-wrapper">
@@ -40,16 +43,20 @@ export default function RequestDocsModal({ onClose, onRequestUpdated }) {
                 </div>
               </div>
               <div className="req-doc-actions">
+                {/* Button to approve document request */}
                 <button
                   className="btn-icon-check"
                   title="Approve Request"
+                  aria-label="Approve request"
                   onClick={() => handleApprove(req.id)}
                 >
                   ✓
                 </button>
+                {/* Button to reject document request */}
                 <button
                   className="btn-icon-close"
                   title="Reject Request"
+                  aria-label="Reject request"
                   onClick={() => handleReject(req.id)}
                 >
                   ✕
@@ -59,11 +66,13 @@ export default function RequestDocsModal({ onClose, onRequestUpdated }) {
           ))}
         </div>
 
+        {/* Button to navigate to the full Document Requests workspace */}
         <button
           type="button"
           className="modal-submit-btn modal-submit-btn--purple"
           onClick={handleGoToRequestDocsPage}
           style={{ marginTop: 18 }}
+          title="Open full document issuance workspace"
         >
           SHOW MORE
         </button>

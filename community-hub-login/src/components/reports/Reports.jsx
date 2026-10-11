@@ -59,16 +59,20 @@ export default function Reports() {
           <p>Track, settle and review community cases.</p>
         </div>
         <div className="reports-header__actions">
+          {/* Button to open Add Report modal */}
           <button
             className="btn-report btn-report--add"
             onClick={() => setActiveModal("add")}
+            title="Add a new community report"
           >
             Add Report
           </button>
 
+          {/* Button to open Delete Report selection modal */}
           <button
             className="btn-report btn-report--delete"
             onClick={() => setActiveModal("delete")}
+            title="Open report deletion manager"
           >
             <Trash2 size={16} />
             Delete Report
@@ -76,24 +80,30 @@ export default function Reports() {
 
           {isAdmin && (
             <>
+              {/* Button to open Settle Report resolution modal (Admin only) */}
               <button
                 className="btn-report btn-report--settle"
                 onClick={() => setActiveModal("settle")}
+                title="Mark a case report as settled"
               >
                 Settle Report
               </button>
+              {/* Button to open Edit Report details modal (Admin only) */}
               <button
                 className="btn-report btn-report--edit"
                 onClick={() => setActiveModal("edit")}
+                title="Edit an existing case report"
               >
                 Edit Report
               </button>
             </>
           )}
 
+          {/* Button to open Request Document modal directly from Reports */}
           <button
             className="btn-report btn-report--docs"
             onClick={() => setActiveModal("docs")}
+            title="Request official barangay certificate or clearance"
           >
             REQUEST DOCS
           </button>

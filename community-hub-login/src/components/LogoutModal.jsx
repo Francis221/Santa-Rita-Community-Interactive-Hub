@@ -101,19 +101,23 @@ export default function LogoutModal({ isOpen, onClose, onConfirm, user }) {
         </div>
 
         <div className="logout-modal__actions">
+          {/* Button to cancel and keep active session */}
           <button
             type="button"
             className="logout-modal__btn logout-modal__btn--cancel"
             onClick={onClose}
             disabled={isLoggingOut}
+            title="Cancel logout"
           >
             Cancel
           </button>
+          {/* Button to confirm logout and sign out */}
           <button
             type="button"
             className="logout-modal__btn logout-modal__btn--confirm"
             onClick={handleConfirm}
             disabled={isLoggingOut}
+            title="Confirm Sign Out"
           >
             {isLoggingOut ? (
               <>

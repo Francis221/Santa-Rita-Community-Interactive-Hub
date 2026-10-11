@@ -17,24 +17,30 @@ export default function AddReportModal({ onClose, onReportAdded }) {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  // Form submission handler to save the new report
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.caseType || !formData.complainant) {
       alert("Please fill in Case Type and Complainant name.");
       return;
     }
-    DB.addReport(formData);
-    onReportAdded();
-    onClose();
+    await DB.addReport(formData);
+    if (onReportAdded) onReportAdded();
+    if (onClose) onClose();
   };
 
   return (
+    /* Modal Backdrop Overlay */
     <div className="modal-overlay" onClick={onClose}>
+      {/* Modal Dialog Card */}
       <div className="chub-modal" onClick={(e) => e.stopPropagation()}>
-        <button className="chub-modal__close" onClick={onClose}>✕</button>
+        {/* Button to close the modal */}
+        <button className="chub-modal__close" onClick={onClose} aria-label="Close Modal" title="Close modal">✕</button>
         <h2 className="chub-modal__title">ADD REPORT</h2>
 
+        {/* Report submission form */}
         <form onSubmit={handleSubmit}>
+          {/* Case Type Input Field */}
           <div className="modal-form-group">
             <label className="modal-label">CASE TYPE</label>
             <input
@@ -49,6 +55,7 @@ export default function AddReportModal({ onClose, onReportAdded }) {
           </div>
 
           <div className="modal-form-row">
+            {/* Complainant Name Input Field */}
             <div className="modal-form-group">
               <label className="modal-label">COMPLAINANT</label>
               <input
@@ -61,6 +68,7 @@ export default function AddReportModal({ onClose, onReportAdded }) {
                 required
               />
             </div>
+            {/* Respondent Name Input Field */}
             <div className="modal-form-group">
               <label className="modal-label">RESPONDENT</label>
               <input
@@ -75,6 +83,7 @@ export default function AddReportModal({ onClose, onReportAdded }) {
           </div>
 
           <div className="modal-form-row">
+            {/* Date Filed Input Field */}
             <div className="modal-form-group">
               <label className="modal-label">DATE FILED</label>
               <input
@@ -85,6 +94,7 @@ export default function AddReportModal({ onClose, onReportAdded }) {
                 onChange={handleChange}
               />
             </div>
+            {/* Initial Case Status Selector */}
             <div className="modal-form-group">
               <label className="modal-label">STATUS</label>
               <select
@@ -101,6 +111,7 @@ export default function AddReportModal({ onClose, onReportAdded }) {
             </div>
           </div>
 
+          {/* Incident Details Textarea */}
           <div className="modal-form-group">
             <label className="modal-label">DETAILS</label>
             <textarea
@@ -112,7 +123,8 @@ export default function AddReportModal({ onClose, onReportAdded }) {
             ></textarea>
           </div>
 
-          <button style={{ cursor: "pointer", backgroundColor: "orange" }} type="submit" className="modal-submit-btn modal-submit-btn--green">
+          {/* Button to submit and publish the report */}
+          <button style={{ cursor: "pointer", backgroundColor: "#f97316" }} type="submit" className="modal-submit-btn modal-submit-btn--green">
             Add Report
           </button>
         </form>

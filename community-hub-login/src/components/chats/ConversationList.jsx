@@ -15,19 +15,24 @@ class ConversationList extends React.Component {
     } = this.props;
 
     return (
+      /* Left Sidebar Conversations List */
       <div className="chub-chat-sidebar">
+        {/* Sidebar Header with New Conversation Button */}
         <div className="chub-chat-sidebar__header">
           <h2 className="chub-chat-sidebar__title">Messages</h2>
+          {/* Button to open New Chat creation modal */}
           <button
             type="button"
             className="chub-chat-sidebar__add-btn"
             onClick={onOpenNewChatModal}
-            title="New Message"
+            title="Start New Conversation"
+            aria-label="New conversation"
           >
             <Plus size={18} />
           </button>
         </div>
 
+        {/* Message search input filter */}
         <div className="chub-chat-sidebar__search">
           <Search size={16} className="chub-chat-sidebar__search-icon" />
           <input
@@ -35,28 +40,36 @@ class ConversationList extends React.Component {
             placeholder="Search messages..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
+            aria-label="Search conversation messages"
           />
         </div>
 
+        {/* Conversation category filter buttons */}
         <div className="chub-chat-sidebar__filters">
+          {/* Button to show all conversations */}
           <button
             type="button"
             className={`chub-chat-filter-btn ${filter === 'all' ? 'chub-chat-filter-btn--active' : ''}`}
             onClick={() => onFilterChange('all')}
+            title="Show all messages"
           >
             All
           </button>
+          {/* Button to filter unread conversations */}
           <button
             type="button"
             className={`chub-chat-filter-btn ${filter === 'unread' ? 'chub-chat-filter-btn--active' : ''}`}
             onClick={() => onFilterChange('unread')}
+            title="Show only unread messages"
           >
             Unread
           </button>
+          {/* Button to filter group conversations */}
           <button
             type="button"
             className={`chub-chat-filter-btn ${filter === 'groups' ? 'chub-chat-filter-btn--active' : ''}`}
             onClick={() => onFilterChange('groups')}
+            title="Show group discussions"
           >
             Groups
           </button>

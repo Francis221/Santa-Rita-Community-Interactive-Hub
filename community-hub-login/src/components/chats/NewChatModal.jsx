@@ -29,15 +29,19 @@ class NewChatModal extends React.Component {
     );
 
     return (
+      /* Modal Overlay Backdrop */
       <div className="chub-chat-modal-overlay" onClick={onClose}>
+        {/* Modal Window Container */}
         <div className="chub-chat-modal" onClick={(e) => e.stopPropagation()}>
           <div className="chub-chat-modal__header">
             <h3>New Message</h3>
-            <button type="button" className="chub-chat-modal__close" onClick={onClose}>
+            {/* Button to close new message modal */}
+            <button type="button" className="chub-chat-modal__close" onClick={onClose} title="Close Modal" aria-label="Close modal">
               <X size={18} />
             </button>
           </div>
 
+          {/* Search input field to filter contacts */}
           <div className="chub-chat-modal__search">
             <Search size={16} />
             <input
@@ -45,11 +49,14 @@ class NewChatModal extends React.Component {
               placeholder="Search contacts or officials..."
               value={search}
               onChange={(e) => this.setState({ search: e.target.value })}
+              aria-label="Search contacts"
             />
           </div>
 
+          {/* List of contact cards to start a conversation with */}
           <div className="chub-chat-modal__list">
             {filteredContacts.map((contact) => (
+              /* Clickable contact card to create or open conversation */
               <div
                 key={contact.id}
                 className="chub-chat-modal__contact"
@@ -57,6 +64,7 @@ class NewChatModal extends React.Component {
                   onCreateChat(contact);
                   onClose();
                 }}
+                title={`Chat with ${contact.name}`}
               >
                 <div
                   className="chub-chat-modal__avatar"

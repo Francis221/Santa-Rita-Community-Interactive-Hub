@@ -195,7 +195,8 @@ if (!$db) {
                     respondent TEXT DEFAULT NULL,
                     purok TEXT DEFAULT 'Purok 1',
                     status TEXT DEFAULT 'Pending',
-                    details TEXT NOT NULL,
+                    details TEXT DEFAULT NULL,
+                    description TEXT DEFAULT NULL,
                     date_filed DATE DEFAULT CURRENT_DATE,
                     settlement_date DATE DEFAULT NULL,
                     settle_by TEXT DEFAULT NULL,
@@ -377,12 +378,12 @@ function send_reset_email(string $email, string $code): bool
 // ---- Helpers ----
 function json_post()
 {
-    if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST')
-        out(['success' => false, 'message' => 'POST only'], 405);
-    if (stripos($_SERVER['CONTENT_TYPE'] ?? '', 'application/json') === false) {
-        out(['success' => false, 'message' => 'JSON required'], 415);
+    $raw = file_get_contents('php://input');
+    $decoded = json_decode($raw, true);
+    if (is_array($decoded)) {
+        return $decoded;
     }
-    return json_decode(file_get_contents('php://input'), true) ?: [];
+    return $_POST ?: [];
 }
 
 function require_login()

@@ -18,8 +18,16 @@
   padding: 0 28px;
 }
 
+@media (max-width: 900px) {
+  .app-shell__content {
+    padding-bottom: 80px;
+  }
+}
+
 @media (max-width: 720px) {
   .app-shell__content {
-    padding: 0 16px;
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-bottom: 84px;
   }
 }

@@ -23,11 +23,13 @@ export default function QuickActions() {
       <h2 id="quick-actions-heading" className="quick-actions__heading">
         Quick <span>Action</span>
       </h2>
+      {/* Grid of quick action shortcut cards */}
       <div className="quick-actions__grid">
         {visibleActions.map((action) => {
           const Icon = ICONS[action.icon] || HelpCircle;
           return (
-            <Link to={action.to} className="action-card" key={action.id}>
+            /* Quick action interactive card link leading to specific feature */
+            <Link to={action.to} className="action-card" key={action.id} title={`Go to ${action.title}`}>
               <span className="action-card__icon">
                 <Icon size={22} strokeWidth={1.8} />
               </span>

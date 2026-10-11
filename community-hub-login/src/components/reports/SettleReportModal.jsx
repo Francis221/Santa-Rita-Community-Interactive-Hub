@@ -24,9 +24,12 @@ export default function SettleReportModal({ reports, onClose, onReportSettled })
   };
 
   return (
+    /* Modal Backdrop Overlay */
     <div className="modal-overlay" onClick={onClose}>
+      {/* Modal Dialog Card */}
       <div className="chub-modal" onClick={(e) => e.stopPropagation()}>
-        <button className="chub-modal__close" onClick={onClose}>✕</button>
+        {/* Button to close settle case modal */}
+        <button className="chub-modal__close" onClick={onClose} aria-label="Close modal" title="Close modal">✕</button>
         <h2 className="chub-modal__title">SETTLE CASE</h2>
 
         <form onSubmit={handleSubmit}>
@@ -87,7 +90,8 @@ export default function SettleReportModal({ reports, onClose, onReportSettled })
             ></textarea>
           </div>
 
-          <button type="submit" className="modal-submit-btn modal-submit-btn--purple">
+          {/* Button to submit settlement resolution and update case status */}
+          <button type="submit" className="modal-submit-btn modal-submit-btn--purple" title="Submit settlement">
             Settle Report
           </button>
         </form>

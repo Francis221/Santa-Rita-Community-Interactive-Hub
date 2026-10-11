@@ -20,19 +20,24 @@ export default function DeleteReportModal({ reports, onClose, onReportDeleted })
   };
 
   return (
+    /* Modal Backdrop Overlay */
     <div className="modal-overlay" onClick={onClose}>
+      {/* Modal Dialog Card */}
       <div className="chub-modal" onClick={(e) => e.stopPropagation()}>
-        <button className="chub-modal__close" onClick={onClose}>✕</button>
+        {/* Button to close delete modal */}
+        <button className="chub-modal__close" onClick={onClose} aria-label="Close modal" title="Close modal">✕</button>
         <h2 className="chub-modal__title" style={{ color: "#f87171" }}>DELETE REPORT</h2>
 
         {reports.length === 0 ? (
           <div style={{ textAlign: "center", padding: "20px 0", color: "#94a3b8" }}>
             <p>No reports currently available to delete.</p>
+            {/* Button to dismiss empty modal */}
             <button
               type="button"
               className="modal-submit-btn"
               style={{ background: "#334155", color: "#fff", marginTop: "1rem" }}
               onClick={onClose}
+              title="Close modal"
             >
               Close
             </button>
@@ -84,10 +89,12 @@ export default function DeleteReportModal({ reports, onClose, onReportDeleted })
               </div>
             )}
 
+            {/* Button to confirm permanent deletion of the selected report */}
             <button
               type="submit"
               className="modal-submit-btn modal-submit-btn--red"
               style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+              title="Delete report from records"
             >
               <Trash2 size={18} /> Delete Report Permanently
             </button>

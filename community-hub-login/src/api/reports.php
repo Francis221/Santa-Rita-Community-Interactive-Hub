@@ -16,11 +16,14 @@ try {
         purok VARCHAR(100) DEFAULT 'Purok 1',
         status VARCHAR(50) DEFAULT 'Pending',
         description TEXT DEFAULT NULL,
+        details TEXT DEFAULT NULL,
         settlement_date VARCHAR(50) DEFAULT NULL,
         settle_by VARCHAR(100) DEFAULT NULL,
         resolution_summary TEXT DEFAULT NULL,
         date_filed DATETIME DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+    try { $db->exec("ALTER TABLE incident_reports ADD COLUMN description TEXT DEFAULT NULL"); } catch (Throwable $e) {}
+    try { $db->exec("ALTER TABLE incident_reports ADD COLUMN details TEXT DEFAULT NULL"); } catch (Throwable $e) {}
 } catch (Throwable $e) {
     error_log('incident_reports table setup notice: ' . $e->getMessage());
 }
@@ -28,19 +31,19 @@ try {
 $action = $_GET['action'] ?? $_POST['action'] ?? $_REQUEST['action'] ?? 'list';
 
 if ($action === 'create') {
-    $rawInput = file_get_contents('php://input');
-    $input = json_decode($rawInput, true) ?: [];
+    $input = json_post();
 
-    $caseType = trim($input['caseType'] ?? $_POST['caseType'] ?? $_REQUEST['caseType'] ?? 'General Incident');
+    $caseType = trim($input['caseType'] ?? $input['title'] ?? $_POST['caseType'] ?? $_REQUEST['caseType'] ?? 'General Incident');
     $complainant = trim($input['complainant'] ?? $_POST['complainant'] ?? $_REQUEST['complainant'] ?? 'Anonymous');
     $respondent = trim($input['respondent'] ?? $_POST['respondent'] ?? $_REQUEST['respondent'] ?? 'N/A');
     $purok = trim($input['purok'] ?? $_POST['purok'] ?? $_REQUEST['purok'] ?? 'Purok 1');
+    $status = trim($input['status'] ?? $_POST['status'] ?? 'Pending');
     $details = trim($input['details'] ?? $input['description'] ?? $_POST['details'] ?? $_REQUEST['details'] ?? '');
 
-    $code = 'REP-2026-' . rand(100, 999);
+    $code = !empty($input['id']) ? trim($input['id']) : ('REP-2026-' . rand(100, 999));
 
-    $stmt = $db->prepare('INSERT INTO incident_reports (report_code, case_type, complainant, respondent, purok, status, description, date_filed) VALUES (?, ?, ?, ?, ?, "Pending", ?, NOW())');
-    $stmt->execute([$code, $caseType, $complainant, $respondent, $purok, $details]);
+    $stmt = $db->prepare('INSERT INTO incident_reports (report_code, case_type, complainant, respondent, purok, status, description, details, date_filed) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())');
+    $stmt->execute([$code, $caseType, $complainant, $respondent, $purok, $status, $details, $details]);
 
     $newId = $db->lastInsertId();
 
@@ -54,10 +57,11 @@ if ($action === 'create') {
             'complainant' => $complainant,
             'respondent' => $respondent,
             'parties' => "$complainant vs. $respondent",
-            'status' => 'Pending',
+            'status' => $status,
             'dateFiled' => date('M d, Y'),
             'purok' => $purok,
-            'description' => $details
+            'description' => $details,
+            'details' => $details
         ]
     ]);
 } elseif ($action === 'settle') {

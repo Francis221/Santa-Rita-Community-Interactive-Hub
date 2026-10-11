@@ -44,11 +44,15 @@ export default function EditReportModal({ reports, onClose, onReportUpdated }) {
   };
 
   return (
+    /* Modal Backdrop Overlay */
     <div className="modal-overlay" onClick={onClose}>
+      {/* Modal Dialog Card */}
       <div className="chub-modal" onClick={(e) => e.stopPropagation()}>
-        <button className="chub-modal__close" onClick={onClose}>✕</button>
+        {/* Button to close edit modal */}
+        <button className="chub-modal__close" onClick={onClose} aria-label="Close Modal" title="Close modal">✕</button>
         <h2 className="chub-modal__title">EDIT REPORT</h2>
 
+        {/* Report editing form */}
         <form onSubmit={handleSubmit}>
           <div className="modal-form-group">
             <label className="modal-label">SELECT REPORT</label>
@@ -149,7 +153,8 @@ export default function EditReportModal({ reports, onClose, onReportUpdated }) {
             ></textarea>
           </div>
 
-          <button type="submit" className="modal-submit-btn modal-submit-btn--red">
+          {/* Button to save modified report changes */}
+          <button type="submit" className="modal-submit-btn modal-submit-btn--red" title="Save updated report">
             Edit Report
           </button>
         </form>

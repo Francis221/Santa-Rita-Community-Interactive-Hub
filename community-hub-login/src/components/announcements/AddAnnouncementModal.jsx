@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { DB } from "../../services/db";
 import { X, Megaphone, Upload } from "lucide-react";
+import genassembly from "../photo/genassembly.jpg";
 
 export default function AddAnnouncementModal({ onClose, onAdded }) {
   const [title, setTitle] = useState("");
@@ -31,7 +32,7 @@ export default function AddAnnouncementModal({ onClose, onAdded }) {
       badge,
       location,
       content,
-      image: image || "https://images.unsplash.com/photo-1577962917302-cd874c4e31d2?w=800&auto=format&fit=crop&q=80",
+      image: image || genassembly,
     });
     if (onAdded) onAdded();
     onClose();

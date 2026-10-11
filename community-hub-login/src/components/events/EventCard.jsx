@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { Calendar, Clock, MapPin, Users, Trash2, CheckCircle } from "lucide-react";
-import { DB } from "../../services/db";
+import { DB, resolveEventImage } from "../../services/db";
 import { useAuth } from "../../context/AuthContext";
+import annImg from "../photo/annimg.jpg";
+import cleanImg from "../photo/clean.jpg";
 
 export default function EventCard({ item, onDelete }) {
   const { user } = useAuth();
@@ -9,6 +11,10 @@ export default function EventCard({ item, onDelete }) {
   const [joined, setJoined] = useState(false);
   const [count, setCount] = useState(item.attendeesCount || 12);
 
+  // Resolve authentic community image for the event
+  const displayImage = resolveEventImage ? resolveEventImage(item) : (item.image || annImg);
+
+  // Handler: Delete event permanently (Admin only)
   const handleDelete = () => {
     if (window.confirm(`Delete event "${item.title}"?`)) {
       DB.deleteEvent(item.id);
@@ -16,6 +22,7 @@ export default function EventCard({ item, onDelete }) {
     }
   };
 
+  // Handler: Toggle joining/attending event
   const handleJoinToggle = () => {
     if (joined) {
       setJoined(false);
@@ -33,7 +40,16 @@ export default function EventCard({ item, onDelete }) {
   return (
     <div className="event-card">
       <div className="event-card__image-container">
-        <img src={item.image} alt={item.title} className="event-card__image" />
+        {/* Event Banner Photo: Displays authentic event photo */}
+        <img
+          src={displayImage}
+          alt={item.title}
+          className="event-card__image"
+          onError={(e) => {
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = item.id === "EVT-3" || item.title?.toLowerCase().includes("disaster") ? cleanImg : annImg;
+          }}
+        />
         <div className="event-card__date-badge">
           <div className="event-card__date-badge-day">{dayStr}</div>
           <div className="event-card__date-badge-month">{monthStr}</div>

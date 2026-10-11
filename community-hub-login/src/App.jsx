@@ -5,6 +5,7 @@ import { Routes, Route, Link } from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import MobileBottomNav from "./components/MobileBottomNav";
 
 // Pages & Feature Modules
 import Home from "./pages/Home";
@@ -61,11 +62,23 @@ function ProtectedReportRoute() {
 }
 
 export default function App() {
+  // Handler to toggle mobile navigation drawer from bottom navigation bar
+  const handleToggleMobileMenu = () => {
+    window.dispatchEvent(new Event("toggleMobileMenu"));
+  };
+
   return (
+    /* Main application shell layout */
     <div className="app-shell">
+      {/* Desktop sidebar navigation (hidden on mobile <= 900px) */}
       <Sidebar />
+
+      {/* Main viewport shell containing header, pages, and footer */}
       <div className="app-shell__main">
+        {/* Top Navigation bar with responsive mobile menu toggle */}
         <Navbar />
+
+        {/* Dynamic page routes content area */}
         <main className="app-shell__content" id="top">
           <Routes>
             <Route path="/" element={<Home />} />
@@ -86,7 +99,12 @@ export default function App() {
             ))}
           </Routes>
         </main>
+
+        {/* Global application footer */}
         <Footer />
+
+        {/* Mobile bottom navigation bar for quick 1-tap navigation on phones & tablets */}
+        <MobileBottomNav onToggleMenu={handleToggleMobileMenu} />
       </div>
     </div>
   );

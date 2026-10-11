@@ -30,20 +30,21 @@ $action = $_GET['action'] ?? $_POST['action'] ?? 'list';
 
 if ($action === 'create') {
     $input = json_post();
-    $name = trim($input['applicant_name'] ?? $_POST['applicant_name'] ?? 'Resident');
-    $docType = trim($input['doc_type'] ?? $_POST['doc_type'] ?? 'BARANGAY CLEARANCE');
-    $docName = trim($input['document_name'] ?? $_POST['document_name'] ?? 'Barangay Clearance');
+    $name = trim($input['applicant_name'] ?? $input['applicantName'] ?? $_POST['applicant_name'] ?? $_POST['applicantName'] ?? 'Resident');
+    $docType = trim($input['doc_type'] ?? $input['docType'] ?? $_POST['doc_type'] ?? 'BARANGAY CLEARANCE');
+    $docName = trim($input['document_name'] ?? $input['documentName'] ?? $_POST['document_name'] ?? 'Barangay Clearance');
     $purpose = trim($input['purpose'] ?? $_POST['purpose'] ?? 'General Purpose');
     $address = trim($input['address'] ?? $_POST['address'] ?? 'Purok 3, Sta. Rita Central');
-    $civilStatus = trim($input['civil_status'] ?? $_POST['civil_status'] ?? 'Single');
+    $civilStatus = trim($input['civil_status'] ?? $input['civilStatus'] ?? $_POST['civil_status'] ?? 'Single');
     $age = (int)($input['age'] ?? $_POST['age'] ?? 25);
+    $status = trim($input['status'] ?? $_POST['status'] ?? 'Pending');
 
-    $code = 'DOC-2026-' . rand(100, 999);
-    $ctcNo = 'CTC-2026-' . rand(1000, 9999);
-    $orNo = 'OR-' . rand(90000, 99999);
+    $code = !empty($input['id']) ? trim($input['id']) : ('DOC-2026-' . rand(100, 999));
+    $ctcNo = !empty($input['ctcNo']) ? trim($input['ctcNo']) : (!empty($input['ctc_no']) ? trim($input['ctc_no']) : ('CTC-2026-' . rand(1000, 9999)));
+    $orNo = !empty($input['orNo']) ? trim($input['orNo']) : (!empty($input['or_no']) ? trim($input['or_no']) : ('OR-' . rand(90000, 99999)));
 
-    $stmt = $db->prepare('INSERT INTO doc_requests (request_code, applicant_name, doc_type, document_name, status, purpose, address, civil_status, age, ctc_no, or_no, date_requested) VALUES (?, ?, ?, ?, "Pending", ?, ?, ?, ?, ?, ?, NOW())');
-    $stmt->execute([$code, strtoupper($name), $docType, $docName, $purpose, $address, $civilStatus, $age, $ctcNo, $orNo]);
+    $stmt = $db->prepare('INSERT INTO doc_requests (request_code, applicant_name, doc_type, document_name, status, purpose, address, civil_status, age, ctc_no, or_no, date_requested) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())');
+    $stmt->execute([$code, strtoupper($name), $docType, $docName, $status, $purpose, $address, $civilStatus, $age, $ctcNo, $orNo]);
 
     $newId = $db->lastInsertId();
 
