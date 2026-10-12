@@ -29,7 +29,7 @@ export default function RequestDocsModal({ onClose, onRequestUpdated }) {
       {/* Modal Dialog Card */}
       <div className="chub-modal" onClick={(e) => e.stopPropagation()}>
         {/* Button to close Request Documents modal */}
-        <button className="chub-modal__close" onClick={onClose} aria-label="Close modal" title="Close modal">✕</button>
+
         <h2 className="chub-modal__title">REQUEST DOCUMENTS</h2>
 
         <div className="req-docs-list-wrapper">

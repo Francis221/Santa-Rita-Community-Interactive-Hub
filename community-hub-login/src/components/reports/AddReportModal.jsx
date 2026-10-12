@@ -26,6 +26,7 @@ export default function AddReportModal({ onClose, onReportAdded }) {
     }
     await DB.addReport(formData);
     if (onReportAdded) onReportAdded();
+    window.confirm("Report added successfully!")
     if (onClose) onClose();
   };
 
@@ -124,7 +125,7 @@ export default function AddReportModal({ onClose, onReportAdded }) {
           </div>
 
           {/* Button to submit and publish the report */}
-          <button style={{ cursor: "pointer", backgroundColor: "#f97316" }} type="submit" className="modal-submit-btn modal-submit-btn--green">
+          <button style={{ cursor: "pointer", backgroundColor: "blue" }} type="submit" className="modal-submit-btn modal-submit-btn--green">
             Add Report
           </button>
         </form>

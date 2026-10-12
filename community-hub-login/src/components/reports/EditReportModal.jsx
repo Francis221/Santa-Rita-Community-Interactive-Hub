@@ -154,7 +154,7 @@ export default function EditReportModal({ reports, onClose, onReportUpdated }) {
           </div>
 
           {/* Button to save modified report changes */}
-          <button type="submit" className="modal-submit-btn modal-submit-btn--red" title="Save updated report">
+          <button style={{ cursor: "pointer", backgroundColor: "blue" }} type="submit" className="modal-submit-btn modal-submit-btn--red" title="Save updated report">
             Edit Report
           </button>
         </form>

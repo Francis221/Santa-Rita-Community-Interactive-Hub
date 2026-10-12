@@ -7,7 +7,7 @@ export default function EditStatsModal({ onClose, onSaved }) {
   const currentStats = DB.getStats();
   const [population, setPopulation] = useState(currentStats.population || "12,480");
   const [household, setHousehold] = useState(currentStats.household || "3,150");
-  const [online, setOnline] = useState(currentStats.online || "1");
+
 
   const handleSubmit = (e) => {
     e.preventDefault();

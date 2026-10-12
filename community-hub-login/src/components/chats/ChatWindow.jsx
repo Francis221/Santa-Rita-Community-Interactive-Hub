@@ -128,9 +128,8 @@ class ChatWindow extends React.Component {
               )}
               {!chat.isGroup && (
                 <span
-                  className={`chub-chat-window__status-dot ${
-                    chat.isOnline ? 'chub-chat-window__status-dot--online' : ''
-                  }`}
+                  className={`chub-chat-window__status-dot ${chat.isOnline ? 'chub-chat-window__status-dot--online' : ''
+                    }`}
                 />
               )}
             </div>
@@ -187,9 +186,8 @@ class ChatWindow extends React.Component {
             return (
               <div
                 key={msg.id}
-                className={`chub-chat-bubble-wrap ${
-                  isOutgoing ? 'chub-chat-bubble-wrap--outgoing' : 'chub-chat-bubble-wrap--incoming'
-                }`}
+                className={`chub-chat-bubble-wrap ${isOutgoing ? 'chub-chat-bubble-wrap--outgoing' : 'chub-chat-bubble-wrap--incoming'
+                  }`}
               >
                 <div className="chub-chat-bubble">
                   {chat.isGroup && !isOutgoing && msg.sender_name && (

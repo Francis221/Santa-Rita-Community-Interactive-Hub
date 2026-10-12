@@ -27,6 +27,8 @@ export default function Reports() {
     }
   };
 
+
+
   useEffect(() => {
     refreshReports();
     DB.fetchReportsFromApi().then(data => { if (data) setReports(data); });
@@ -100,13 +102,7 @@ export default function Reports() {
           )}
 
           {/* Button to open Request Document modal directly from Reports */}
-          <button
-            className="btn-report btn-report--docs"
-            onClick={() => setActiveModal("docs")}
-            title="Request official barangay certificate or clearance"
-          >
-            REQUEST DOCS
-          </button>
+
         </div>
       </div>
 
@@ -179,8 +175,8 @@ export default function Reports() {
                   rep.status === "Settled"
                     ? "settled"
                     : rep.status === "Pending"
-                    ? "pending"
-                    : "unsettled";
+                      ? "pending"
+                      : "unsettled";
 
                 return (
                   <tr key={rep.id}>
@@ -259,12 +255,8 @@ export default function Reports() {
         />
       )}
 
-      {activeModal === "docs" && (
-        <RequestDocsModal
-          onClose={() => setActiveModal(null)}
-          onRequestUpdated={refreshReports}
-        />
-      )}
+
+
     </div>
   );
 }

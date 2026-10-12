@@ -103,10 +103,9 @@ export const sidebarLinks = [
   { id: "announcement", label: "Announcements", icon: "Megaphone", to: "/announcements" },
   { id: "events", label: "Events", icon: "Calendar", to: "/events" },
   { id: "friends", label: "Find Friends", icon: "UserPlus", to: "/find-friends" },
-  { id: "projects", label: "Projects", icon: "FolderKanban", to: "/projects" },
   { id: "reports", label: "Reports", icon: "BarChart3", to: "/reports" },
   { id: "request", label: "Request Document", icon: "FileText", to: "/request-document" },
-  { id: "settings", label: "Settings", icon: "Settings", to: "/settings" },
+
 ];
 
 export const navLinks = [
