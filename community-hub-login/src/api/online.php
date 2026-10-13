@@ -82,12 +82,8 @@ if ($action === 'heartbeat') {
     out(['success' => true, 'online_count' => $onlineCount]);
 
 } else {
-    // Action 'status' — return user list with real-time online flags
-    try {
-        $db->prepare('UPDATE users SET is_online = 0 WHERE last_active < ? AND is_online = 1')
-           ->execute([$threshold]);
-    } catch (Throwable $e) {}
-
+    // Action 'status' — READ ONLY, no writes here to prevent lock contention
+    // Cleanup is done only in heartbeat to avoid lock storms from polling
     $users = [];
     try {
         $stmt = $db->query('SELECT id, username, email, role, avatar, COALESCE(is_online, 0) as is_online, last_active FROM users ORDER BY id DESC');

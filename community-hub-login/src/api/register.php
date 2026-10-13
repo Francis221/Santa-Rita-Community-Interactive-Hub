@@ -66,10 +66,19 @@ try {
     $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
     $savedAvatar = $photo;
 
-    // Retry insert up to 3 times to handle SQLite "database is locked"
+    // Use a file-based mutex to serialize SQLite writes and prevent "database is locked"
+    $lockFile = sys_get_temp_dir() . '/register_mutex.lock';
+    $lock = fopen($lockFile, 'w');
+    $locked = $lock && flock($lock, LOCK_EX | LOCK_NB); // non-blocking try
+    if (!$locked && $lock) {
+        // Another process is writing — wait up to 8 seconds for the lock
+        $locked = flock($lock, LOCK_EX); // blocking wait
+    }
+
     $inserted = false;
     $lastError = null;
-    for ($attempt = 0; $attempt < 3; $attempt++) {
+
+    for ($attempt = 0; $attempt < 5; $attempt++) {
         try {
             $stmt = $db->prepare("INSERT INTO users (username, email, password, role, avatar) VALUES (?, ?, ?, 'Resident', ?)");
             $stmt->execute([$username, $email, $hashedPassword, $photo]);
@@ -77,9 +86,8 @@ try {
             break;
         } catch (Throwable $insertEx) {
             $lastError = $insertEx;
-            // If locked, wait a bit and retry
             if (strpos($insertEx->getMessage(), 'locked') !== false) {
-                usleep(200000 * ($attempt + 1)); // 200ms, 400ms, 600ms
+                usleep(500000 * ($attempt + 1)); // 0.5s, 1s, 1.5s, 2s, 2.5s
                 continue;
             }
             // Fallback: try without avatar column
@@ -91,9 +99,15 @@ try {
                 break;
             } catch (Throwable $e2) {
                 $lastError = $e2;
+                if (strpos($e2->getMessage(), 'locked') !== false) {
+                    usleep(500000 * ($attempt + 1));
+                }
             }
         }
     }
+
+    // Release file lock
+    if ($lock) { flock($lock, LOCK_UN); fclose($lock); }
 
     if (!$inserted) {
         throw new Exception('Insert failed after retries: ' . ($lastError ? $lastError->getMessage() : 'unknown'));
