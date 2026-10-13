@@ -65,66 +65,69 @@ try {
 
     $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
     $savedAvatar = $photo;
+    $isSQLite = $db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite';
 
-    // Use a file-based mutex to serialize SQLite writes and prevent "database is locked"
-    $lockFile = sys_get_temp_dir() . '/register_mutex.lock';
-    $lock = fopen($lockFile, 'w');
-    $locked = $lock && flock($lock, LOCK_EX | LOCK_NB); // non-blocking try
-    if (!$locked && $lock) {
-        // Another process is writing — wait up to 8 seconds for the lock
-        $locked = flock($lock, LOCK_EX); // blocking wait
-    }
+    // Serialize writes with an OS-level file lock (prevents race conditions between PHP workers)
+    $lockFile = sys_get_temp_dir() . '/db_write.lock';
+    $lock = fopen($lockFile, 'w+');
+    if ($lock) flock($lock, LOCK_EX); // blocks until free — no timeout needed
 
     $inserted = false;
     $lastError = null;
+    $newId = null;
 
     for ($attempt = 0; $attempt < 5; $attempt++) {
         try {
-            $stmt = $db->prepare("INSERT INTO users (username, email, password, role, avatar) VALUES (?, ?, ?, 'Resident', ?)");
-            $stmt->execute([$username, $email, $hashedPassword, $photo]);
-            $inserted = true;
-            break;
-        } catch (Throwable $insertEx) {
-            $lastError = $insertEx;
-            if (strpos($insertEx->getMessage(), 'locked') !== false) {
-                usleep(500000 * ($attempt + 1)); // 0.5s, 1s, 1.5s, 2s, 2.5s
-                continue;
+            if ($isSQLite) {
+                // BEGIN IMMEDIATE acquires the write lock upfront — prevents "database is locked"
+                $db->exec('BEGIN IMMEDIATE');
+            } else {
+                $db->beginTransaction();
             }
-            // Fallback: try without avatar column
+
             try {
+                $stmt = $db->prepare("INSERT INTO users (username, email, password, role, avatar) VALUES (?, ?, ?, 'Resident', ?)");
+                $stmt->execute([$username, $email, $hashedPassword, $photo]);
+            } catch (Throwable $colErr) {
+                // avatar column might not exist — try without it
                 $stmt = $db->prepare("INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, 'Resident')");
                 $stmt->execute([$username, $email, $hashedPassword]);
                 $savedAvatar = null;
-                $inserted = true;
-                break;
-            } catch (Throwable $e2) {
-                $lastError = $e2;
-                if (strpos($e2->getMessage(), 'locked') !== false) {
-                    usleep(500000 * ($attempt + 1));
-                }
             }
+
+            $newId = (int)$db->lastInsertId();
+            $db->exec('COMMIT');
+            $inserted = true;
+            break;
+
+        } catch (Throwable $ex) {
+            try { $db->exec('ROLLBACK'); } catch (Throwable $r) {}
+            $lastError = $ex;
+            if (strpos($ex->getMessage(), 'locked') !== false && $attempt < 4) {
+                usleep(800000 * ($attempt + 1)); // 0.8s → 1.6s → 2.4s → 3.2s
+                continue;
+            }
+            break;
         }
     }
 
-    // Release file lock
+    // Always release the file lock
     if ($lock) { flock($lock, LOCK_UN); fclose($lock); }
 
     if (!$inserted) {
-        throw new Exception('Insert failed after retries: ' . ($lastError ? $lastError->getMessage() : 'unknown'));
+        throw new Exception('Could not save account after retries. Please try again. (' . ($lastError ? $lastError->getMessage() : '') . ')');
     }
-
-    $newId = (int)$db->lastInsertId();
 
     out([
         'success' => true,
-        'ok' => true,
+        'ok'      => true,
         'message' => 'Account created successfully!',
-        'user' => [
-            'id' => $newId,
+        'user'    => [
+            'id'     => $newId,
             'username' => $username,
-            'email' => $email,
-            'role' => 'Resident',
-            'avatar' => $savedAvatar
+            'email'    => $email,
+            'role'     => 'Resident',
+            'avatar'   => $savedAvatar,
         ]
     ], 201);
 
