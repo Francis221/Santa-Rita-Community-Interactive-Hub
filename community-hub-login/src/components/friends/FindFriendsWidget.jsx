@@ -21,21 +21,56 @@ export default function FindFriendsWidget({ limit = 0, showHeader = true }) {
     } catch (e) {}
   };
 
+  // Lightweight online-status-only refresh — polls /api/online.php every 5s
+  const refreshOnlineStatus = async () => {
+    try {
+      const res = await fetch("/api/online.php?action=status", { credentials: "include" });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data && Array.isArray(data.users) && data.users.length > 0) {
+        // Build a map of userId -> is_online
+        const onlineMap = {};
+        data.users.forEach((u) => { onlineMap[u.id] = Boolean(u.is_online); });
+
+        // Patch the cached residents with fresh online status
+        const cached = DB.getResidents();
+        const patched = cached.map((r) => {
+          const numId = Number(String(r.id).replace("user-", ""));
+          if (onlineMap[numId] !== undefined) {
+            return { ...r, isOnline: onlineMap[numId] };
+          }
+          return r;
+        });
+
+        // Save back and trigger UI refresh
+        localStorage.setItem("chub_db_residents", JSON.stringify(patched));
+        window.dispatchEvent(new Event("friendsUpdated"));
+        setResidents(patched);
+      }
+    } catch (e) {}
+  };
+
   useEffect(() => {
     refreshResidents();
     const handleUpdate = () => refreshResidents();
     window.addEventListener("friendsUpdated", handleUpdate);
     window.addEventListener("statsUpdated", handleUpdate);
-    
-    // Auto polling every 3 seconds for real-time online status updates
+
+    // Full user+friend list refresh every 5 seconds
     const interval = setInterval(() => {
       refreshResidents();
+    }, 5000);
+
+    // Fast online-status-only poll every 3 seconds
+    const onlineInterval = setInterval(() => {
+      refreshOnlineStatus();
     }, 3000);
 
     return () => {
       window.removeEventListener("friendsUpdated", handleUpdate);
       window.removeEventListener("statsUpdated", handleUpdate);
       clearInterval(interval);
+      clearInterval(onlineInterval);
     };
   }, []);
 
