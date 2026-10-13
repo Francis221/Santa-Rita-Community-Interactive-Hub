@@ -318,6 +318,11 @@ if (!$db) {
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         ]);
 
+        // WAL mode: prevents "database is locked" when concurrent requests write
+        $db->exec('PRAGMA journal_mode=WAL');
+        $db->exec('PRAGMA busy_timeout=10000'); // wait up to 10s before failing
+        $db->exec('PRAGMA synchronous=NORMAL'); // faster writes, safe with WAL
+
         // Register custom SQL functions for compatibility with MySQL queries
         $db->sqliteCreateFunction('NOW', function () {
             return date('Y-m-d H:i:s');
