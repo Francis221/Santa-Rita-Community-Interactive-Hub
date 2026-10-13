@@ -580,14 +580,7 @@ export const DB = {
         return INITIAL_RESIDENTS;
       }
       const parsed = JSON.parse(data);
-      // Clean up legacy non-database users if present
-      const knownUsernames = ["justinryan", "admin", "francis", "kyla", "testresident"];
-      const cleaned = parsed.filter((r) => {
-        const uName = (r.username || r.name || "").toLowerCase().replace(/\s+/g, "");
-        return knownUsernames.some(k => uName.includes(k) || k.includes(uName)) || r.id?.startsWith("user-");
-      });
-
-      return cleaned.length > 0 ? cleaned : INITIAL_RESIDENTS;
+      return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_RESIDENTS;
     } catch (e) {
       return INITIAL_RESIDENTS;
     }
