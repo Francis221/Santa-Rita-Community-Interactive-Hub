@@ -8,6 +8,11 @@ export const resolveAnnouncementImage = (item) => {
   const title = String(item.title || "").toLowerCase();
   const rawImg = typeof item.image === "string" ? item.image : "";
 
+  // 0. User uploaded image in uploads folder
+  if (rawImg && (rawImg.includes("uploads/") || rawImg.startsWith("/api/uploads") || rawImg.startsWith("/uploads"))) {
+    return rawImg.startsWith("uploads/") ? `/${rawImg}` : rawImg;
+  }
+
   // 1. Barangay General Assembly -> genassembly.jpg
   if (
     id === "ANN-1" ||
@@ -366,34 +371,93 @@ export const DB = {
     return DB.getAnnouncements();
   },
 
-  addAnnouncement: (announcement) => {
+  addAnnouncement: async (announcementData, fallbackObj) => {
+    const isFormData = announcementData instanceof FormData;
     const items = DB.getAnnouncements();
+
+    const title = isFormData ? announcementData.get("title") : announcementData.title;
+    const category = isFormData ? announcementData.get("category") : (announcementData.category || "General");
+    const badge = isFormData ? announcementData.get("badge") : (announcementData.badge || "Notice");
+    const location = isFormData ? announcementData.get("location") : (announcementData.location || "Barangay Hall");
+    const content = isFormData ? announcementData.get("content") : (announcementData.content || "");
+    const imagePreview = fallbackObj?.imagePreview || genassembly;
+
     const newItem = {
       id: `ANN-${Date.now()}`,
-      title: announcement.title,
-      category: announcement.category || "General",
+      title,
+      category,
       date: new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }),
-      time: announcement.time || "9:00 AM",
-      location: announcement.location || "Barangay Hall",
-      author: announcement.author || "Barangay Admin",
-      content: announcement.content || "",
-      badge: announcement.badge || "Notice",
-      image: announcement.image || genassembly,
+      time: "9:00 AM",
+      location,
+      author: "Barangay Admin",
+      content,
+      badge,
+      image: imagePreview,
     };
+
     const updated = [newItem, ...items];
     localStorage.setItem(STORAGE_KEYS.ANNOUNCEMENTS, JSON.stringify(updated));
     window.dispatchEvent(new Event("announcementsUpdated"));
 
     try {
-      fetch('/api/announcements.php?action=create', {
+      const res = await fetch('/api/announcements.php?action=create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify(newItem)
-      }).catch(() => { });
+        body: isFormData ? announcementData : JSON.stringify(newItem)
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.success && data.announcement) {
+          await DB.fetchAnnouncementsFromApi();
+        }
+      }
     } catch (e) { }
 
     return newItem;
+  },
+
+  updateAnnouncement: async (announcementData, fallbackObj) => {
+    const isFormData = announcementData instanceof FormData;
+    const id = isFormData ? announcementData.get("id") : announcementData.id;
+    const items = DB.getAnnouncements();
+
+    const title = isFormData ? announcementData.get("title") : announcementData.title;
+    const category = isFormData ? announcementData.get("category") : announcementData.category;
+    const badge = isFormData ? announcementData.get("badge") : announcementData.badge;
+    const location = isFormData ? announcementData.get("location") : announcementData.location;
+    const content = isFormData ? announcementData.get("content") : announcementData.content;
+    const imagePreview = fallbackObj?.imagePreview;
+
+    const updated = items.map((a) => {
+      if (a.id === id) {
+        return {
+          ...a,
+          title: title || a.title,
+          category: category || a.category,
+          badge: badge || a.badge,
+          location: location || a.location,
+          content: content || a.content,
+          image: imagePreview || a.image
+        };
+      }
+      return a;
+    });
+
+    localStorage.setItem(STORAGE_KEYS.ANNOUNCEMENTS, JSON.stringify(updated));
+    window.dispatchEvent(new Event("announcementsUpdated"));
+
+    try {
+      const res = await fetch('/api/announcements.php?action=update', {
+        method: 'POST',
+        credentials: 'include',
+        body: isFormData ? announcementData : JSON.stringify({ id, title, category, badge, location, content })
+      });
+      if (res.ok) {
+        await DB.fetchAnnouncementsFromApi();
+      }
+    } catch (e) { }
+
+    return updated;
   },
 
   deleteAnnouncement: (id) => {
@@ -415,6 +479,21 @@ export const DB = {
   },
 
   // Events API
+  fetchEventsFromApi: async () => {
+    try {
+      const res = await fetch('/api/events.php?action=list', { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.success && Array.isArray(data.events) && data.events.length > 0) {
+          localStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(data.events));
+          window.dispatchEvent(new Event("eventsUpdated"));
+          return data.events;
+        }
+      }
+    } catch (e) {}
+    return DB.getEvents();
+  },
+
   getEvents: () => {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.EVENTS);
@@ -436,7 +515,7 @@ export const DB = {
     }
   },
 
-  addEvent: (event) => {
+  addEvent: async (event) => {
     const items = DB.getEvents();
     const newItem = {
       id: `EVT-${Date.now()}`,
@@ -453,6 +532,24 @@ export const DB = {
     const updated = [newItem, ...items];
     localStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(updated));
     window.dispatchEvent(new Event("eventsUpdated"));
+
+    try {
+      const formData = new FormData();
+      formData.append("title", event.title);
+      formData.append("category", event.category || "Community");
+      formData.append("date", event.date || "");
+      formData.append("start_time", event.time || "9:00 AM");
+      formData.append("location", event.location || "Barangay Plaza");
+      formData.append("organizer", event.organizer || "Barangay Council");
+      formData.append("description", event.description || "");
+      await fetch('/api/events.php?action=create', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+      await DB.fetchEventsFromApi();
+    } catch (e) {}
+
     return newItem;
   },
 
@@ -461,6 +558,16 @@ export const DB = {
     const updated = items.filter((e) => e.id !== id);
     localStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(updated));
     window.dispatchEvent(new Event("eventsUpdated"));
+
+    try {
+      fetch('/api/events.php?action=delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ id })
+      }).catch(() => {});
+    } catch (e) {}
+
     return updated;
   },
 

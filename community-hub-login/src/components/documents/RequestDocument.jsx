@@ -683,9 +683,8 @@ export default function RequestDocument() {
                       <td>
                         {/* Interactive Status Badge: If approved, clicking triggers auto-download */}
                         <span
-                          className={`badge-status badge-status--${
-                            isApproved ? "settled" : req.status === "Pending" ? "pending" : "unsettled"
-                          }`}
+                          className={`badge-status badge-status--${isApproved ? "settled" : req.status === "Pending" ? "pending" : "unsettled"
+                            }`}
                           style={isApproved ? { cursor: "pointer", textDecoration: "underline" } : {}}
                           onClick={() => {
                             if (isApproved) handleDownloadApprovedDocument(req);

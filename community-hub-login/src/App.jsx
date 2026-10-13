@@ -1,5 +1,5 @@
 import React from "react";
-import { Routes, Route, Link } from "react-router-dom";
+import { Routes, Route, Link, Navigate } from "react-router-dom";
 
 // Layout
 import Sidebar from "./components/Sidebar";
@@ -11,13 +11,14 @@ import MobileBottomNav from "./components/MobileBottomNav";
 import Home from "./pages/Home";
 import Officials from "./pages/Officials";
 import Reports from "./pages/Reports";
+import MyReports from "./pages/MyReports";
 import RequestDocument from "./pages/RequestDocument";
 import Profile from "./pages/Profile";
 import Placeholder from "./pages/Placeholder";
-import Chats from "./components/chats/Chats";
 import FindFriendsPage from "./components/friends/FindFriendsPage";
 import AnnouncementsPage from "./components/announcements/AnnouncementsPage";
 import EventsPage from "./components/events/EventsPage";
+import NotFound from "./pages/NotFound";
 import { useAuth } from "./context/AuthContext";
 
 import "./styles/home.css";
@@ -37,23 +38,39 @@ function ProtectedReportRoute() {
         <h2 style={{ fontSize: '1.75rem', fontWeight: 600, color: '#f8fafc', marginBottom: '0.5rem' }}>
           Access Restricted
         </h2>
-        <p style={{ color: '#94a3b8', fontSize: '1rem', maxWidth: '420px', margin: '0 auto 2rem auto' }}>
-          Reports and case management are reserved exclusively for Barangay Administrators.
+        <p style={{ color: '#94a3b8', fontSize: '1rem', maxWidth: '420px', margin: '0 auto 1.5rem auto' }}>
+          Full council case management is reserved exclusively for Barangay Administrators.
         </p>
-        <Link
-          to="/"
-          style={{
-            display: 'inline-block',
-            backgroundColor: '#2563eb',
-            color: '#ffffff',
-            padding: '0.6rem 1.5rem',
-            borderRadius: '8px',
-            fontWeight: 500,
-            textDecoration: 'none',
-          }}
-        >
-          Return to Home
-        </Link>
+        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+          <Link
+            to="/my-reports"
+            style={{
+              display: 'inline-block',
+              backgroundColor: '#16a34a',
+              color: '#ffffff',
+              padding: '0.6rem 1.5rem',
+              borderRadius: '8px',
+              fontWeight: 500,
+              textDecoration: 'none',
+            }}
+          >
+            View My Reports
+          </Link>
+          <Link
+            to="/"
+            style={{
+              display: 'inline-block',
+              backgroundColor: '#334155',
+              color: '#ffffff',
+              padding: '0.6rem 1.5rem',
+              borderRadius: '8px',
+              fontWeight: 500,
+              textDecoration: 'none',
+            }}
+          >
+            Return to Home
+          </Link>
+        </div>
       </div>
     );
   }
@@ -86,10 +103,11 @@ export default function App() {
             <Route path="/announcements" element={<AnnouncementsPage />} />
             <Route path="/events" element={<EventsPage />} />
             <Route path="/officials" element={<Officials />} />
-            <Route path="/reports" element={<Reports />} />
+            <Route path="/my-reports" element={<MyReports />} />
+            <Route path="/reports" element={<ProtectedReportRoute />} />
             <Route path="/request-document" element={<RequestDocument />} />
             <Route path="/profile" element={<Profile />} />
-            <Route path="/chats" element={<Chats />} />
+            <Route path="/chats" element={<Navigate to="/" replace />} />
             {PLACEHOLDER_ROUTES.map((route) => (
               <Route
                 key={route.path}
@@ -97,6 +115,7 @@ export default function App() {
                 element={<Placeholder title={route.title} />}
               />
             ))}
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
 

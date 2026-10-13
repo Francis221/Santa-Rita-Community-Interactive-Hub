@@ -1,6 +1,6 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { Home, MessageSquare, FileText, BarChart3, Menu } from "lucide-react";
+import { Home, Megaphone, FileText, BarChart3, Menu } from "lucide-react";
 import "./MobileBottomNav.css";
 
 /**
@@ -26,16 +26,16 @@ export default function MobileBottomNav({ onToggleMenu, isMenuOpen }) {
           <span className="mobile-bottom-nav__label">Home</span>
         </NavLink>
 
-        {/* Navigation Button: Community Chats */}
+        {/* Navigation Button: Announcements */}
         <NavLink
-          to="/chats"
+          to="/announcements"
           className={({ isActive }) =>
             "mobile-bottom-nav__item" + (isActive ? " mobile-bottom-nav__item--active" : "")
           }
-          title="Community Chats"
+          title="Announcements"
         >
-          <MessageSquare size={20} strokeWidth={2} />
-          <span className="mobile-bottom-nav__label">Chats</span>
+          <Megaphone size={20} strokeWidth={2} />
+          <span className="mobile-bottom-nav__label">News</span>
         </NavLink>
 
         {/* Navigation Button: Request Documents & Certificates */}

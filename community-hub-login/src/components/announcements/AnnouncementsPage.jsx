@@ -58,7 +58,12 @@ export default function AnnouncementsPage() {
       ) : (
         <div className="announcements-grid">
           {announcements.map((item) => (
-            <AnnouncementCard key={item.id} item={item} onDelete={refreshAnnouncements} />
+            <AnnouncementCard
+              key={item.id}
+              item={item}
+              onDelete={refreshAnnouncements}
+              onUpdate={refreshAnnouncements}
+            />
           ))}
         </div>
       )}

@@ -15,3 +15,10 @@ services:
         value: tr2Rcq8LuP7tX
       - key: DB_PORT
         value: 3306
+# Note: For Render Persistent Disk, attach a disk mounted at /var/www/html/uploads
+# (requires Render Starter plan or above):
+#     disk:
+#       name: community_uploads
+#       mountPath: /var/www/html/uploads
+#       sizeGB: 1
+

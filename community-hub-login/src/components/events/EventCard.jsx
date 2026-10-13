@@ -1,13 +1,15 @@
 import React, { useState } from "react";
-import { Calendar, Clock, MapPin, Users, Trash2, CheckCircle } from "lucide-react";
+import { Calendar, Clock, MapPin, Users, Trash2, CheckCircle, Edit3 } from "lucide-react";
 import { DB, resolveEventImage } from "../../services/db";
 import { useAuth } from "../../context/AuthContext";
+import EditEventModal from "./EditEventModal";
 import annImg from "../photo/annimg.jpg";
 import cleanImg from "../photo/clean.jpg";
 
 export default function EventCard({ item, onDelete }) {
   const { user } = useAuth();
   const isAdmin = user?.role === "Admin";
+  const [isEditing, setIsEditing] = useState(false);
   const [joined, setJoined] = useState(false);
   const [count, setCount] = useState(item.attendeesCount || 12);
 
@@ -94,16 +96,60 @@ export default function EventCard({ item, onDelete }) {
           </button>
 
           {isAdmin && (
-            <button
-              onClick={handleDelete}
-              style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", padding: "0.5rem" }}
-              title="Delete Event"
-            >
-              <Trash2 size={16} />
-            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <button
+                type="button"
+                onClick={() => setIsEditing(true)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#60a5fa",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  padding: "0.5rem"
+                }}
+                title="Edit Event"
+              >
+                <Edit3 size={15} /> Edit
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#ef4444",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  padding: "0.5rem"
+                }}
+                title="Delete Event"
+              >
+                <Trash2 size={15} /> Delete
+              </button>
+            </div>
           )}
         </div>
       </div>
+
+      {isEditing && (
+        <EditEventModal
+          item={item}
+          onClose={() => setIsEditing(false)}
+          onUpdated={() => {
+            setIsEditing(false);
+            if (onDelete) onDelete();
+          }}
+        />
+      )}
     </div>
   );
 }

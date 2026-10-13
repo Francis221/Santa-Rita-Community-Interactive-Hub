@@ -13,12 +13,30 @@ export default function WelcomeStats() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [dbStats, setDbStats] = useState(DB.getStats());
+  const [csrfToken, setCsrfToken] = useState("");
   const [activeReportsCount, setActiveReportsCount] = useState(0);
   const [liveLoginStats, setLiveLoginStats] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
+  const fetchStatsFromApi = async () => {
+    try {
+      const res = await fetch("/api/stats.php", { credentials: "include" });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.success && data.stats) {
+          setDbStats(data.stats);
+          DB.updateStats(data.stats);
+          if (data.csrf_token) setCsrfToken(data.csrf_token);
+          if (typeof data.stats.reports === "number") {
+            setActiveReportsCount(data.stats.reports);
+          }
+        }
+      }
+    } catch (e) {}
+  };
+
   const refreshData = async () => {
-    setDbStats(DB.getStats());
+    fetchStatsFromApi();
     const reports = DB.getReports();
     const activeCount = reports.filter((r) => r.status !== "Settled").length;
     setActiveReportsCount(activeCount);
@@ -30,6 +48,7 @@ export default function WelcomeStats() {
   };
 
   useEffect(() => {
+    fetchStatsFromApi();
     refreshData();
     window.addEventListener("storage", refreshData);
     window.addEventListener("reportsUpdated", refreshData);
@@ -38,7 +57,7 @@ export default function WelcomeStats() {
     const interval = setInterval(() => {
       DB.fetchUsersFromApi();
       refreshData();
-    }, 3000);
+    }, 5000);
 
     return () => {
       window.removeEventListener("storage", refreshData);
@@ -53,9 +72,9 @@ export default function WelcomeStats() {
 
   const handleCardClick = (statId) => {
     if (statId === "reports") {
-      navigate("/reports");
+      navigate(isAdmin ? "/reports" : "/my-reports");
     } else if (statId === "online") {
-      navigate("/chats");
+      navigate("/find-friends");
     } else if ((statId === "population" || statId === "household") && isAdmin) {
       setIsEditModalOpen(true);
     }
@@ -172,7 +191,14 @@ export default function WelcomeStats() {
       {isEditModalOpen && (
         <EditStatsModal
           onClose={() => setIsEditModalOpen(false)}
-          onSaved={refreshData}
+          onSaved={(newStats) => {
+            if (newStats) {
+              setDbStats((prev) => ({ ...prev, ...newStats }));
+            }
+            refreshData();
+          }}
+          currentStats={dbStats}
+          csrfToken={csrfToken}
         />
       )}
     </section>

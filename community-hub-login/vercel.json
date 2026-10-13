@@ -3,7 +3,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://santa-rita-community-interactive-hub-1.onrender.com/htdocs/api/:path*"
+      "destination": " https://santa-rita-community-interactive-hub-1.onrender.com"
     },
     {
       "source": "/(.*)",

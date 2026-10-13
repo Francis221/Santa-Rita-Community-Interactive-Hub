@@ -252,6 +252,126 @@ LOCK TABLES `users` WRITE;
 INSERT INTO `users` VALUES (1,'francis','francis@example.com','$2y$10$OYxpa9nFtHbZDuWEInBKSOU4BdqSxCdxtZ8ExDMFrp5XF2TiUeAu.','Admin',NULL,NULL,0,0,NULL,0,'2026-10-11 05:27:04'),(2,'justinryan','deguzmanfrancis50@gmail.com','$2y$10$TNzev8xoAhWzEMLuemB1q.j.Kw1fMBcWy.TcXdCmyiETDlMyMJCLa','Resident',NULL,NULL,0,0,NULL,1,'2026-10-11 05:27:04'),(3,'admin','admin@barangay.gov.ph','$2y$10$OYxpa9nFtHbZDuWEInBKSOU4BdqSxCdxtZ8ExDMFrp5XF2TiUeAu.','Admin',NULL,NULL,0,0,NULL,0,'2026-10-11 05:27:04'),(4,'testresident','testresident@example.com','$2y$10$yXkbp/hZvzmvosXKh4LH4.3UJAqRpZxj3QXy2si7lYUklPRStqCd6','Resident',NULL,NULL,0,0,NULL,0,'2026-10-11 05:27:04'),(5,'kyla','kylamovido5@gmail.com','$2y$10$yXkbp/hZvzmvosXKh4LH4.3UJAqRpZxj3QXy2si7lYUklPRStqCd6','Resident','930640','2026-10-05 01:04:25',0,0,'data:image/jpeg;base64,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',0,'2026-10-11 05:27:04');
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
+
+--
+-- Table structure for table `notifications`
+--
+
+DROP TABLE IF EXISTS `notifications`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `notifications` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) DEFAULT NULL,
+  `title` varchar(255) NOT NULL,
+  `message` text NOT NULL,
+  `link` varchar(255) DEFAULT NULL,
+  `is_read` tinyint(1) DEFAULT 0,
+  `created_at` datetime DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `user_id` (`user_id`),
+  KEY `is_read` (`is_read`),
+  KEY `created_at` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `notifications` WRITE;
+INSERT INTO `notifications` VALUES 
+(1,NULL,'Welcome to Community Hub!','Explore official announcements, events, and public services for Barangay Sta. Rita Central.','/announcements',0,'2026-10-11 05:27:04'),
+(2,NULL,'Document Request Desk Active','You can now submit Barangay Clearance and Residency requests online.','/request-document',0,'2026-10-11 05:27:04');
+UNLOCK TABLES;
+
+--
+-- Table structure for table `dashboard_stats`
+--
+
+DROP TABLE IF EXISTS `dashboard_stats`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `dashboard_stats` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `stat_key` varchar(50) NOT NULL UNIQUE,
+  `stat_value` varchar(100) NOT NULL,
+  `updated_at` datetime DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `stat_key` (`stat_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `dashboard_stats` WRITE;
+INSERT INTO `dashboard_stats` VALUES 
+(1,'population','12,480','2026-10-11 05:27:04'),
+(2,'household','3,150','2026-10-11 05:27:04');
+UNLOCK TABLES;
+
+--
+-- Table structure for table `officials`
+--
+
+DROP TABLE IF EXISTS `officials`;
+CREATE TABLE `officials` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(150) NOT NULL,
+  `position` varchar(100) NOT NULL,
+  `rank_order` int(11) NOT NULL DEFAULT 10,
+  `committee` varchar(150) DEFAULT NULL,
+  `photo` longtext DEFAULT NULL,
+  `term_start` varchar(50) DEFAULT '2023',
+  `term_end` varchar(50) DEFAULT '2026',
+  `is_active` tinyint(1) DEFAULT 1,
+  `phone` varchar(50) DEFAULT NULL,
+  `email` varchar(100) DEFAULT NULL,
+  `created_at` datetime DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `rank_order` (`rank_order`),
+  KEY `is_active` (`is_active`)
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+LOCK TABLES `officials` WRITE;
+INSERT INTO `officials` VALUES 
+(1,'FERNANDO C. FABRO','Punong Barangay (Barangay Captain)',1,'Head of Council','/src/components/photo/Punong_barangay.png','2023','2026',1,'0912 345 6789','captain@sta-rita.gov.ph','2026-10-11 05:27:04'),
+(2,'REGINA ELENA O. DULAY','Barangay Kagawad',2,'Committee on Health','/src/components/photo/chs.png','2023','2026',1,'0912 345 0001','rdulay@sta-rita.gov.ph','2026-10-11 05:27:04'),
+(3,'DOMINGO R. NARDO','Barangay Kagawad',3,'Committee Chair on Education','/src/components/photo/edu.png','2023','2026',1,'0912 345 0002','dnardo@sta-rita.gov.ph','2026-10-11 05:27:04'),
+(4,'SALOME B. ALOOT','Barangay Kagawad',4,'Committee Chair on Budget and Appropriation','/src/components/photo/cba.png','2023','2026',1,'0912 345 0003','saloot@sta-rita.gov.ph','2026-10-11 05:27:04'),
+(5,'JO ANN V. ALOOT','Barangay Kagawad',5,'Committee Chair on Livelihood','/src/components/photo/livelihood.png','2023','2026',1,'0912 345 0004','jvaloot@sta-rita.gov.ph','2026-10-11 05:27:04'),
+(6,'GLORIA D. ALBAY','Barangay Kagawad',6,'Peace & Order','/src/components/photo/cpo.png','2023','2026',1,'0912 345 0005','galbay@sta-rita.gov.ph','2026-10-11 05:27:04'),
+(7,'AMADO R. ALOOT','Barangay Kagawad',7,'Committee Chair on Agriculture','/src/components/photo/agri.png','2023','2026',1,'0912 345 0006','amaloot@sta-rita.gov.ph','2026-10-11 05:27:04'),
+(8,'MARK JOSEPH RAMOS','Barangay Kagawad',8,'Committee Chair on Youth & Sports',NULL,'2023','2026',1,'0912 345 0007','mjramos@sta-rita.gov.ph','2026-10-11 05:27:04'),
+(9,'PATRICIA MAE REYES','SK Chairperson',9,'Sangguniang Kabataan Affairs',NULL,'2023','2026',1,'0912 345 0008','skchair@sta-rita.gov.ph','2026-10-11 05:27:04'),
+(10,'LENY V. PANELO','Barangay Secretary',10,'Secretariat & Records','/src/components/photo/sec.png','2023','2026',1,'0912 345 0009','secretary@sta-rita.gov.ph','2026-10-11 05:27:04'),
+(11,'AGNES C. MACASIEB','Barangay Treasurer',11,'Treasury & Disbursements','/src/components/photo/treasurer.png','2023','2026',1,'0912 345 0010','treasurer@sta-rita.gov.ph','2026-10-11 05:27:04');
+UNLOCK TABLES;
+
+--
+-- Table structure for table `events`
+--
+
+DROP TABLE IF EXISTS `events`;
+CREATE TABLE `events` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `event_code` varchar(50) NOT NULL UNIQUE,
+  `title` varchar(255) NOT NULL,
+  `category` varchar(100) DEFAULT 'Community',
+  `description` text DEFAULT NULL,
+  `event_date` varchar(50) NOT NULL,
+  `start_time` varchar(50) DEFAULT '9:00 AM',
+  `end_time` varchar(50) DEFAULT '12:00 PM',
+  `location` varchar(255) DEFAULT 'Barangay Plaza',
+  `organizer` varchar(150) DEFAULT 'Barangay Council',
+  `attendees_count` int(11) DEFAULT 0,
+  `image` longtext DEFAULT NULL,
+  `created_at` datetime DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `event_date` (`event_date`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+LOCK TABLES `events` WRITE;
+INSERT INTO `events` VALUES
+(1,'EVT-1','SK Youth Basketball & Volleyball League','Sports','Annual Barangay Inter-Purok Sports League kick-off ceremony. Cheer for your purok teams!','Oct 12, 2026','04:00 PM','07:00 PM','Sta. Rita Covered Court','SK Youth Council',42,'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=800&auto=format&fit=crop&q=80','2026-10-11 05:27:04'),
+(2,'EVT-2','Senior Citizens Wellness Checkup & Pension Payout','Senior Affairs','Monthly social pension payout and free blood pressure & glucose screening for seniors.','Oct 18, 2026','09:00 AM','12:00 PM','Barangay Multipurpose Hall','Office for Senior Citizens Affairs',88,'./src/components/photo/annimg.jpg','2026-10-11 05:27:04'),
+(3,'EVT-3','Disaster Preparedness & Fire Safety Drill','Safety','Hands-on fire extinguisher usage demonstration, earthquake drill, and emergency kit prep tutorial.','Oct 25, 2026','01:30 PM','04:30 PM','Barangay Plaza','BFP & Barangay Tanod Unit',65,'./src/components/photo/clean.jpg','2026-10-11 05:27:04');
+UNLOCK TABLES;
+
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -263,3 +383,4 @@ UNLOCK TABLES;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
 -- Dump completed on 2026-10-11  5:27:19
+

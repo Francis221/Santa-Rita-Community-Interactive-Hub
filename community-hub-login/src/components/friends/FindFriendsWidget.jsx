@@ -221,29 +221,10 @@ export default function FindFriendsWidget({ limit = 0, showHeader = true }) {
                     <span>🟢 Active Session</span>
                   </button>
                 ) : resident.isFriend ? (
-                  <div style={{ display: "flex", gap: "6px", width: "100%" }}>
-                    <button className="btn-friend-action btn-friend-friends" style={{ flex: 1 }}>
-                      <UserCheck size={16} />
-                      <span>Friends</span>
-                    </button>
-                    <button
-                      className="btn-friend-action btn-friend-msg"
-                      onClick={() => {
-                        const rawId = resident.id?.replace?.("user-", "") || resident.id;
-                        navigate("/chats", {
-                          state: {
-                            targetUserId: rawId,
-                            targetName: resident.name,
-                            targetRole: resident.role,
-                            isOnline: isOnline,
-                          }
-                        });
-                      }}
-                      title="Send Message"
-                    >
-                      <MessageSquare size={16} />
-                    </button>
-                  </div>
+                  <button className="btn-friend-action btn-friend-friends" style={{ width: "100%" }}>
+                    <UserCheck size={16} />
+                    <span>Friends</span>
+                  </button>
                 ) : resident.status === "pending_outgoing" ? (
                   <button className="btn-friend-action btn-friend-pending" disabled>
                     <span>Request Sent</span>

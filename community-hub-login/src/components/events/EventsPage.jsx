@@ -18,6 +18,9 @@ export default function EventsPage() {
 
   useEffect(() => {
     refreshEvents();
+    DB.fetchEventsFromApi().then((data) => {
+      if (data && Array.isArray(data)) setEvents(data);
+    });
     const handleUpdate = () => refreshEvents();
     window.addEventListener("eventsUpdated", handleUpdate);
     return () => window.removeEventListener("eventsUpdated", handleUpdate);

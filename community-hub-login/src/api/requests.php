@@ -48,6 +48,12 @@ if ($action === 'create') {
 
     $newId = $db->lastInsertId();
 
+    create_notification(
+        "Document Request Submitted",
+        "{$name} submitted a request for {$docName} ({$purpose}).",
+        "/request-document"
+    );
+
     out([
         'success' => true,
         'request' => [
@@ -74,6 +80,12 @@ if ($action === 'create') {
     if ($id) {
         $stmt = $db->prepare('UPDATE doc_requests SET status = ? WHERE id = ? OR request_code = ?');
         $stmt->execute([$status, $id, $id]);
+
+        create_notification(
+            "Document Status Updated",
+            "Request {$id} has been marked as {$status}.",
+            "/request-document"
+        );
     }
 
     out(['success' => true]);

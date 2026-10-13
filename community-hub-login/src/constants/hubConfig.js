@@ -11,7 +11,7 @@ import treasurerPhoto from '../components/photo/treasurer.png';
 import agriPhoto from '../components/photo/agri.png';
 
 export const barangay = {
-  name: "Sta. Rita Central",
+  name: "Sta. Rita",
   municipality: "Agoo, La Union",
   email: "barangay@sta-rita.gov.ph",
   phone: "0912 345 6789",
@@ -90,11 +90,11 @@ export const captain = {
 export const kagawad = [
   { id: "k0", name: "LENY V. PANELO", role: "Barangay Secretary", photo: secPhoto },
   { id: "k1", name: "REGINA ELENA O. DULAY", role: "Barangay Kagawad", committee: "Committee on Health", photo: chsPhoto },
-  { id: "k2", name: "GLORIA D. ALBAY", role: "Barangay Kagawad", committee: "Peace & Order", photo: cpoPhoto },
+  { id: "k2", name: "AGNES C. MACASIEB", role: "Barangay Kagawad", committee: "Treasurer", photo: treasurerPhoto },
   { id: "k3", name: "DOMINGO R. NARDO", role: "Barangay Kagawad", committee: "Committee Chair on Education", photo: eduPhoto },
   { id: "k4", name: "SALOME B. ALOOT", role: "Barangay Kagawad", committee: "Committee Chair on Budget and Appropriation", photo: cbaPhoto },
   { id: "k5", name: "JO ANN V. ALOOT", role: "Barangay Kagawad", committee: "Committee Chair on Livelihood", photo: livelihoodPhoto },
-  { id: "k6", name: "AGNES C. MACASIEB", role: "Barangay Kagawad", committee: "Treasurer", photo: treasurerPhoto },
+  { id: "k6", name: "GLORIA D. ALBAY", role: "Barangay Kagawad", committee: "Peace & Order", photo: cpoPhoto },
   { id: "k7", name: "AMADO R. ALOOT", role: "Barangay Kagawad", committee: "Committee Chair on Agriculture", photo: agriPhoto },
 ];
 
@@ -114,5 +114,4 @@ export const navLinks = [
   { id: "announcements", label: "Announcements", to: "/announcements" },
   { id: "events", label: "Events", to: "/events" },
   { id: "officials", label: "Officials", to: "/officials" },
-  { id: "chats", label: "Chats", to: "/chats" },
 ];

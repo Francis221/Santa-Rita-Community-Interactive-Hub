@@ -2,6 +2,9 @@
 // ---- Keep PHP warnings/notices out of JSON responses ----
 ini_set('display_errors', '0');
 ini_set('log_errors', '1');
+if (file_exists('/dev/stderr')) {
+    ini_set('error_log', '/dev/stderr');
+}
 error_reporting(E_ALL);
 
 date_default_timezone_set('Asia/Manila');
@@ -27,6 +30,23 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// ---- CSRF Protection Helpers ----
+function get_csrf_token(): string
+{
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+function verify_csrf_token(?string $token): bool
+{
+    if (empty($token) || empty($_SESSION['csrf_token'])) {
+        return false;
+    }
+    return hash_equals($_SESSION['csrf_token'], $token);
+}
+
 // ---- CORS: Allow Vercel, localhost, and custom domains ----
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '*';
 if ($origin !== '*') {
@@ -36,7 +56,7 @@ if ($origin !== '*') {
     header("Access-Control-Allow-Origin: *");
 }
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With, X-CSRF-Token');
 header('Access-Control-Max-Age: 86400');
 header('Vary: Origin');
 
@@ -50,23 +70,28 @@ if (php_sapi_name() !== 'cli') {
 }
 
 // ---- Database Connection Config ----
-$isLocalhost = in_array($_SERVER['SERVER_NAME'] ?? '', ['127.0.0.1', 'localhost']) || (php_sapi_name() === 'cli' && empty(getenv('DB_HOST')));
+$envHost = getenv('DB_HOST') ?: ($_ENV['DB_HOST'] ?? ($_SERVER['DB_HOST'] ?? ''));
+$envName = getenv('DB_NAME') ?: ($_ENV['DB_NAME'] ?? ($_SERVER['DB_NAME'] ?? ''));
+$envUser = getenv('DB_USER') ?: ($_ENV['DB_USER'] ?? ($_SERVER['DB_USER'] ?? ''));
+$envPass = getenv('DB_PASS') !== false ? getenv('DB_PASS') : ($_ENV['DB_PASS'] ?? ($_SERVER['DB_PASS'] ?? ''));
+$envPort = getenv('DB_PORT') ?: ($_ENV['DB_PORT'] ?? ($_SERVER['DB_PORT'] ?? '3306'));
+
+$isLocalhost = in_array($_SERVER['SERVER_NAME'] ?? '', ['127.0.0.1', 'localhost']) || (php_sapi_name() === 'cli' && empty($envHost));
 
 $db = null;
 
-if ($isLocalhost && !getenv('DB_HOST')) {
+if ($isLocalhost && empty($envHost)) {
     $dbHost = '127.0.0.1';
     $dbName = 'login_system';
     $dbUser = 'root';
     $dbPass = '';
     $dbPort = '3306';
 } else {
-    // InfinityFree Live Cloud MySQL Details
-    $dbHost = getenv('DB_HOST') ?: 'sql302.infinityfree.com';
-    $dbName = getenv('DB_NAME') ?: 'if0_43140654_login_system';
-    $dbUser = getenv('DB_USER') ?: 'if0_43140654';
-    $dbPass = getenv('DB_PASS') !== false && getenv('DB_PASS') !== '' ? getenv('DB_PASS') : 'tr2Rcq8LuP7tX';
-    $dbPort = getenv('DB_PORT') ?: '3306';
+    $dbHost = $envHost ?: 'sql302.infinityfree.com';
+    $dbName = $envName ?: 'if0_43140654_login_system';
+    $dbUser = $envUser ?: 'if0_43140654';
+    $dbPass = $envPass !== '' ? $envPass : 'tr2Rcq8LuP7tX';
+    $dbPort = $envPort ?: '3306';
 }
 
 // 1. Try MySQL Connection
@@ -100,6 +125,161 @@ try {
             INDEX (user_id),
             INDEX (friend_id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+    } catch (Throwable $e) {}
+
+    // Ensure notifications table exists in MySQL
+    try {
+        $db->exec("CREATE TABLE IF NOT EXISTS notifications (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT DEFAULT NULL,
+            title VARCHAR(255) NOT NULL,
+            message TEXT NOT NULL,
+            link VARCHAR(255) DEFAULT NULL,
+            is_read TINYINT(1) DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            INDEX (user_id),
+            INDEX (is_read),
+            INDEX (created_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+    } catch (Throwable $e) {}
+
+    // Ensure dashboard_stats table exists in MySQL
+    try {
+        $db->exec("CREATE TABLE IF NOT EXISTS dashboard_stats (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            stat_key VARCHAR(50) NOT NULL UNIQUE,
+            stat_value VARCHAR(100) NOT NULL,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+
+        // Seed default stats if not exists
+        $statCount = (int)$db->query("SELECT COUNT(*) FROM dashboard_stats")->fetchColumn();
+        if ($statCount === 0) {
+            $db->exec("INSERT IGNORE INTO dashboard_stats (stat_key, stat_value) VALUES 
+                ('population', '12,480'),
+                ('household', '3,150');");
+        }
+    } catch (Throwable $e) {}
+
+    // Migrations for incident_reports table
+    try {
+        $db->exec("CREATE TABLE IF NOT EXISTS incident_reports (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            report_code VARCHAR(50) NOT NULL,
+            complainant_user_id INT DEFAULT NULL,
+            case_type VARCHAR(100) NOT NULL,
+            complainant VARCHAR(150) NOT NULL,
+            contact_number VARCHAR(50) DEFAULT NULL,
+            address VARCHAR(255) DEFAULT NULL,
+            respondent VARCHAR(150) DEFAULT 'N/A',
+            purok VARCHAR(100) DEFAULT 'Purok 1',
+            status VARCHAR(50) DEFAULT 'Pending',
+            description TEXT DEFAULT NULL,
+            details TEXT DEFAULT NULL,
+            admin_remarks TEXT DEFAULT NULL,
+            settlement_date VARCHAR(50) DEFAULT NULL,
+            settle_by VARCHAR(100) DEFAULT NULL,
+            resolution_summary TEXT DEFAULT NULL,
+            date_filed DATETIME DEFAULT CURRENT_TIMESTAMP,
+            INDEX (complainant_user_id),
+            INDEX (status),
+            INDEX (date_filed)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+
+        try { $db->exec("ALTER TABLE incident_reports ADD COLUMN complainant_user_id INT DEFAULT NULL"); } catch (Throwable $e) {}
+        try { $db->exec("ALTER TABLE incident_reports ADD COLUMN contact_number VARCHAR(50) DEFAULT NULL"); } catch (Throwable $e) {}
+        try { $db->exec("ALTER TABLE incident_reports ADD COLUMN address VARCHAR(255) DEFAULT NULL"); } catch (Throwable $e) {}
+        try { $db->exec("ALTER TABLE incident_reports ADD COLUMN admin_remarks TEXT DEFAULT NULL"); } catch (Throwable $e) {}
+        try { $db->exec("ALTER TABLE incident_reports ADD COLUMN description TEXT DEFAULT NULL"); } catch (Throwable $e) {}
+        try { $db->exec("ALTER TABLE incident_reports ADD COLUMN details TEXT DEFAULT NULL"); } catch (Throwable $e) {}
+
+        // Backfill complainant_user_id where possible (match username or default to resident user id 2)
+        try {
+            $db->exec("UPDATE incident_reports r 
+                       INNER JOIN users u ON (LOWER(r.complainant) = LOWER(u.username) OR LOWER(r.complainant) LIKE CONCAT('%', LOWER(u.username), '%'))
+                       SET r.complainant_user_id = u.id 
+                       WHERE r.complainant_user_id IS NULL");
+            $db->exec("UPDATE incident_reports SET complainant_user_id = 2 WHERE complainant_user_id IS NULL");
+        } catch (Throwable $e) {}
+    } catch (Throwable $e) {}
+
+    // Migrations for users table (phone, address, full_name)
+    try {
+        try { $db->exec("ALTER TABLE users ADD COLUMN phone VARCHAR(50) DEFAULT NULL"); } catch (Throwable $e) {}
+        try { $db->exec("ALTER TABLE users ADD COLUMN contact_number VARCHAR(50) DEFAULT NULL"); } catch (Throwable $e) {}
+        try { $db->exec("ALTER TABLE users ADD COLUMN address VARCHAR(255) DEFAULT NULL"); } catch (Throwable $e) {}
+        try { $db->exec("ALTER TABLE users ADD COLUMN purok VARCHAR(100) DEFAULT 'Purok 1, Sta. Rita Central'"); } catch (Throwable $e) {}
+        try { $db->exec("ALTER TABLE users ADD COLUMN full_name VARCHAR(150) DEFAULT NULL"); } catch (Throwable $e) {}
+        // Set sample default profile details if empty
+        $db->exec("UPDATE users SET full_name = 'Francis Regie De Guzman', phone = '0912 345 6789', address = 'Purok 1, Sta. Rita Central, Agoo' WHERE id = 1 AND full_name IS NULL");
+        $db->exec("UPDATE users SET full_name = 'Justin Ryan De Guzman', phone = '0920 889 1234', address = 'Purok 2, Sta. Rita Central, Agoo' WHERE id = 2 AND full_name IS NULL");
+        $db->exec("UPDATE users SET full_name = 'Barangay Administrator', phone = '(072) 682-8899', address = 'Barangay Hall, Sta. Rita Central' WHERE id = 3 AND full_name IS NULL");
+        $db->exec("UPDATE users SET full_name = 'Test Resident', phone = '0999 111 2233', address = 'Purok 4, Sta. Rita Central' WHERE id = 4 AND full_name IS NULL");
+        $db->exec("UPDATE users SET full_name = 'Kyla Movido', phone = '0917 555 6789', address = 'Purok 3, Sta. Rita Central' WHERE id = 5 AND full_name IS NULL");
+    } catch (Throwable $e) {}
+
+    // Officials table & seed
+    try {
+        $db->exec("CREATE TABLE IF NOT EXISTS officials (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            name VARCHAR(150) NOT NULL,
+            position VARCHAR(100) NOT NULL,
+            rank_order INT NOT NULL DEFAULT 10,
+            committee VARCHAR(150) DEFAULT NULL,
+            photo LONGTEXT DEFAULT NULL,
+            term_start VARCHAR(50) DEFAULT '2023',
+            term_end VARCHAR(50) DEFAULT '2026',
+            is_active TINYINT(1) DEFAULT 1,
+            phone VARCHAR(50) DEFAULT NULL,
+            email VARCHAR(100) DEFAULT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            INDEX (rank_order),
+            INDEX (is_active)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+
+        $offCount = (int)$db->query("SELECT COUNT(*) FROM officials")->fetchColumn();
+        if ($offCount === 0) {
+            $db->exec("INSERT INTO officials (name, position, rank_order, committee, photo, term_start, term_end, is_active, phone, email) VALUES
+                ('FERNANDO C. FABRO', 'Punong Barangay (Barangay Captain)', 1, 'Head of Council', '/src/components/photo/Punong_barangay.png', '2023', '2026', 1, '0912 345 6789', 'captain@sta-rita.gov.ph'),
+                ('REGINA ELENA O. DULAY', 'Barangay Kagawad', 2, 'Committee on Health', '/src/components/photo/chs.png', '2023', '2026', 1, '0912 345 0001', 'rdulay@sta-rita.gov.ph'),
+                ('DOMINGO R. NARDO', 'Barangay Kagawad', 3, 'Committee Chair on Education', '/src/components/photo/edu.png', '2023', '2026', 1, '0912 345 0002', 'dnardo@sta-rita.gov.ph'),
+                ('SALOME B. ALOOT', 'Barangay Kagawad', 4, 'Committee Chair on Budget and Appropriation', '/src/components/photo/cba.png', '2023', '2026', 1, '0912 345 0003', 'saloot@sta-rita.gov.ph'),
+                ('JO ANN V. ALOOT', 'Barangay Kagawad', 5, 'Committee Chair on Livelihood', '/src/components/photo/livelihood.png', '2023', '2026', 1, '0912 345 0004', 'jvaloot@sta-rita.gov.ph'),
+                ('GLORIA D. ALBAY', 'Barangay Kagawad', 6, 'Peace & Order', '/src/components/photo/cpo.png', '2023', '2026', 1, '0912 345 0005', 'galbay@sta-rita.gov.ph'),
+                ('AMADO R. ALOOT', 'Barangay Kagawad', 7, 'Committee Chair on Agriculture', '/src/components/photo/agri.png', '2023', '2026', 1, '0912 345 0006', 'amaloot@sta-rita.gov.ph'),
+                ('MARK JOSEPH RAMOS', 'Barangay Kagawad', 8, 'Committee Chair on Youth & Sports', NULL, '2023', '2026', 1, '0912 345 0007', 'mjramos@sta-rita.gov.ph'),
+                ('PATRICIA MAE REYES', 'SK Chairperson', 9, 'Sangguniang Kabataan Affairs', NULL, '2023', '2026', 1, '0912 345 0008', 'skchair@sta-rita.gov.ph'),
+                ('LENY V. PANELO', 'Barangay Secretary', 10, 'Secretariat & Records', '/src/components/photo/sec.png', '2023', '2026', 1, '0912 345 0009', 'secretary@sta-rita.gov.ph'),
+                ('AGNES C. MACASIEB', 'Barangay Treasurer', 11, 'Treasury & Disbursements', '/src/components/photo/treasurer.png', '2023', '2026', 1, '0912 345 0010', 'treasurer@sta-rita.gov.ph');");
+        }
+    } catch (Throwable $e) {}
+
+    // Events table & seed
+    try {
+        $db->exec("CREATE TABLE IF NOT EXISTS events (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            event_code VARCHAR(50) NOT NULL UNIQUE,
+            title VARCHAR(255) NOT NULL,
+            category VARCHAR(100) DEFAULT 'Community',
+            description TEXT DEFAULT NULL,
+            event_date VARCHAR(50) NOT NULL,
+            start_time VARCHAR(50) DEFAULT '9:00 AM',
+            end_time VARCHAR(50) DEFAULT '12:00 PM',
+            location VARCHAR(255) DEFAULT 'Barangay Plaza',
+            organizer VARCHAR(150) DEFAULT 'Barangay Council',
+            attendees_count INT DEFAULT 0,
+            image LONGTEXT DEFAULT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            INDEX (event_date)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+
+        $evtCount = (int)$db->query("SELECT COUNT(*) FROM events")->fetchColumn();
+        if ($evtCount === 0) {
+            $db->exec("INSERT INTO events (event_code, title, category, description, event_date, start_time, end_time, location, organizer, attendees_count, image) VALUES
+                ('EVT-1', 'SK Youth Basketball & Volleyball League', 'Sports', 'Annual Barangay Inter-Purok Sports League kick-off ceremony. Cheer for your purok teams!', 'Oct 12, 2026', '04:00 PM', '07:00 PM', 'Sta. Rita Covered Court', 'SK Youth Council', 42, 'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=800&auto=format&fit=crop&q=80'),
+                ('EVT-2', 'Senior Citizens Wellness Checkup & Pension Payout', 'Senior Affairs', 'Monthly social pension payout and free blood pressure & glucose screening for seniors.', 'Oct 18, 2026', '09:00 AM', '12:00 PM', 'Barangay Multipurpose Hall', 'Office for Senior Citizens Affairs', 88, './src/components/photo/annimg.jpg'),
+                ('EVT-3', 'Disaster Preparedness & Fire Safety Drill', 'Safety', 'Hands-on fire extinguisher usage demonstration, earthquake drill, and emergency kit prep tutorial.', 'Oct 25, 2026', '01:30 PM', '04:30 PM', 'Barangay Plaza', 'BFP & Barangay Tanod Unit', 65, './src/components/photo/clean.jpg');");
+        }
     } catch (Throwable $e) {}
 
     // Ensure user deguzmanfrancis50@gmail.com has password Francis25
@@ -281,12 +461,124 @@ if (!$db) {
             }
         } catch (Throwable $e) {}
 
+        // SQLite: notifications & dashboard_stats
+        try {
+            $db->exec("CREATE TABLE IF NOT EXISTS notifications (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER DEFAULT NULL,
+                title TEXT NOT NULL,
+                message TEXT NOT NULL,
+                link TEXT DEFAULT NULL,
+                is_read INTEGER DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );");
+        } catch (Throwable $e) {}
+
+        try {
+            $db->exec("CREATE TABLE IF NOT EXISTS dashboard_stats (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                stat_key TEXT NOT NULL UNIQUE,
+                stat_value TEXT NOT NULL,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );");
+            $sCount = (int)$db->query("SELECT COUNT(*) FROM dashboard_stats")->fetchColumn();
+            if ($sCount === 0) {
+                $db->exec("INSERT OR IGNORE INTO dashboard_stats (stat_key, stat_value) VALUES 
+                    ('population', '12,480'),
+                    ('household', '3,150');");
+            }
+        } catch (Throwable $e) {}
+
         // Migration: Ensure reset password columns exist in SQLite users table
         try { $db->exec("ALTER TABLE users ADD COLUMN reset_code TEXT DEFAULT NULL"); } catch (Throwable $e) {}
         try { $db->exec("ALTER TABLE users ADD COLUMN reset_code_expires DATETIME DEFAULT NULL"); } catch (Throwable $e) {}
         try { $db->exec("ALTER TABLE users ADD COLUMN reset_verified INTEGER DEFAULT 0"); } catch (Throwable $e) {}
         try { $db->exec("ALTER TABLE users ADD COLUMN reset_attempts INTEGER DEFAULT 0"); } catch (Throwable $e) {}
+        try { $db->exec("ALTER TABLE users ADD COLUMN phone TEXT DEFAULT NULL"); } catch (Throwable $e) {}
+        try { $db->exec("ALTER TABLE users ADD COLUMN contact_number TEXT DEFAULT NULL"); } catch (Throwable $e) {}
+        try { $db->exec("ALTER TABLE users ADD COLUMN address TEXT DEFAULT NULL"); } catch (Throwable $e) {}
+        try { $db->exec("ALTER TABLE users ADD COLUMN purok TEXT DEFAULT 'Purok 1, Sta. Rita Central'"); } catch (Throwable $e) {}
+        try { $db->exec("ALTER TABLE users ADD COLUMN full_name TEXT DEFAULT NULL"); } catch (Throwable $e) {}
+        try {
+            $db->exec("UPDATE users SET full_name = 'Francis Regie De Guzman', phone = '0912 345 6789', address = 'Purok 1, Sta. Rita Central, Agoo' WHERE id = 1 AND full_name IS NULL");
+            $db->exec("UPDATE users SET full_name = 'Justin Ryan De Guzman', phone = '0920 889 1234', address = 'Purok 2, Sta. Rita Central, Agoo' WHERE id = 2 AND full_name IS NULL");
+            $db->exec("UPDATE users SET full_name = 'Barangay Administrator', phone = '(072) 682-8899', address = 'Barangay Hall, Sta. Rita Central' WHERE id = 3 AND full_name IS NULL");
+            $db->exec("UPDATE users SET full_name = 'Test Resident', phone = '0999 111 2233', address = 'Purok 4, Sta. Rita Central' WHERE id = 4 AND full_name IS NULL");
+            $db->exec("UPDATE users SET full_name = 'Kyla Movido', phone = '0917 555 6789', address = 'Purok 3, Sta. Rita Central' WHERE id = 5 AND full_name IS NULL");
+        } catch (Throwable $e) {}
+
         try { $db->exec("ALTER TABLE incident_reports ADD COLUMN description TEXT DEFAULT NULL"); } catch (Throwable $e) {}
+        try { $db->exec("ALTER TABLE incident_reports ADD COLUMN details TEXT DEFAULT NULL"); } catch (Throwable $e) {}
+        try { $db->exec("ALTER TABLE incident_reports ADD COLUMN complainant_user_id INTEGER DEFAULT NULL"); } catch (Throwable $e) {}
+        try { $db->exec("ALTER TABLE incident_reports ADD COLUMN contact_number TEXT DEFAULT NULL"); } catch (Throwable $e) {}
+        try { $db->exec("ALTER TABLE incident_reports ADD COLUMN address TEXT DEFAULT NULL"); } catch (Throwable $e) {}
+        try { $db->exec("ALTER TABLE incident_reports ADD COLUMN admin_remarks TEXT DEFAULT NULL"); } catch (Throwable $e) {}
+
+        // SQLite backfill
+        try {
+            $db->exec("UPDATE incident_reports SET complainant_user_id = 2 WHERE complainant_user_id IS NULL");
+        } catch (Throwable $e) {}
+
+        // SQLite officials table & seed
+        try {
+            $db->exec("CREATE TABLE IF NOT EXISTS officials (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                position TEXT NOT NULL,
+                rank_order INTEGER NOT NULL DEFAULT 10,
+                committee TEXT DEFAULT NULL,
+                photo TEXT DEFAULT NULL,
+                term_start TEXT DEFAULT '2023',
+                term_end TEXT DEFAULT '2026',
+                is_active INTEGER DEFAULT 1,
+                phone TEXT DEFAULT NULL,
+                email TEXT DEFAULT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );");
+
+            $oCount = (int)$db->query("SELECT COUNT(*) FROM officials")->fetchColumn();
+            if ($oCount === 0) {
+                $db->exec("INSERT INTO officials (name, position, rank_order, committee, photo, term_start, term_end, is_active, phone, email) VALUES
+                    ('FERNANDO C. FABRO', 'Punong Barangay (Barangay Captain)', 1, 'Head of Council', '/src/components/photo/Punong_barangay.png', '2023', '2026', 1, '0912 345 6789', 'captain@sta-rita.gov.ph'),
+                    ('REGINA ELENA O. DULAY', 'Barangay Kagawad', 2, 'Committee on Health', '/src/components/photo/chs.png', '2023', '2026', 1, '0912 345 0001', 'rdulay@sta-rita.gov.ph'),
+                    ('DOMINGO R. NARDO', 'Barangay Kagawad', 3, 'Committee Chair on Education', '/src/components/photo/edu.png', '2023', '2026', 1, '0912 345 0002', 'dnardo@sta-rita.gov.ph'),
+                    ('SALOME B. ALOOT', 'Barangay Kagawad', 4, 'Committee Chair on Budget and Appropriation', '/src/components/photo/cba.png', '2023', '2026', 1, '0912 345 0003', 'saloot@sta-rita.gov.ph'),
+                    ('JO ANN V. ALOOT', 'Barangay Kagawad', 5, 'Committee Chair on Livelihood', '/src/components/photo/livelihood.png', '2023', '2026', 1, '0912 345 0004', 'jvaloot@sta-rita.gov.ph'),
+                    ('GLORIA D. ALBAY', 'Barangay Kagawad', 6, 'Peace & Order', '/src/components/photo/cpo.png', '2023', '2026', 1, '0912 345 0005', 'galbay@sta-rita.gov.ph'),
+                    ('AMADO R. ALOOT', 'Barangay Kagawad', 7, 'Committee Chair on Agriculture', '/src/components/photo/agri.png', '2023', '2026', 1, '0912 345 0006', 'amaloot@sta-rita.gov.ph'),
+                    ('MARK JOSEPH RAMOS', 'Barangay Kagawad', 8, 'Committee Chair on Youth & Sports', NULL, '2023', '2026', 1, '0912 345 0007', 'mjramos@sta-rita.gov.ph'),
+                    ('PATRICIA MAE REYES', 'SK Chairperson', 9, 'Sangguniang Kabataan Affairs', NULL, '2023', '2026', 1, '0912 345 0008', 'skchair@sta-rita.gov.ph'),
+                    ('LENY V. PANELO', 'Barangay Secretary', 10, 'Secretariat & Records', '/src/components/photo/sec.png', '2023', '2026', 1, '0912 345 0009', 'secretary@sta-rita.gov.ph'),
+                    ('AGNES C. MACASIEB', 'Barangay Treasurer', 11, 'Treasury & Disbursements', '/src/components/photo/treasurer.png', '2023', '2026', 1, '0912 345 0010', 'treasurer@sta-rita.gov.ph');");
+            }
+        } catch (Throwable $e) {}
+
+        // SQLite events table & seed
+        try {
+            $db->exec("CREATE TABLE IF NOT EXISTS events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                event_code TEXT NOT NULL UNIQUE,
+                title TEXT NOT NULL,
+                category TEXT DEFAULT 'Community',
+                description TEXT DEFAULT NULL,
+                event_date TEXT NOT NULL,
+                start_time TEXT DEFAULT '9:00 AM',
+                end_time TEXT DEFAULT '12:00 PM',
+                location TEXT DEFAULT 'Barangay Plaza',
+                organizer TEXT DEFAULT 'Barangay Council',
+                attendees_count INTEGER DEFAULT 0,
+                image TEXT DEFAULT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );");
+
+            $eCount = (int)$db->query("SELECT COUNT(*) FROM events")->fetchColumn();
+            if ($eCount === 0) {
+                $db->exec("INSERT INTO events (event_code, title, category, description, event_date, start_time, end_time, location, organizer, attendees_count, image) VALUES
+                    ('EVT-1', 'SK Youth Basketball & Volleyball League', 'Sports', 'Annual Barangay Inter-Purok Sports League kick-off ceremony. Cheer for your purok teams!', 'Oct 12, 2026', '04:00 PM', '07:00 PM', 'Sta. Rita Covered Court', 'SK Youth Council', 42, 'https://images.unsplash.com/photo-1546519638-68e109498ffc?w=800&auto=format&fit=crop&q=80'),
+                    ('EVT-2', 'Senior Citizens Wellness Checkup & Pension Payout', 'Senior Affairs', 'Monthly social pension payout and free blood pressure & glucose screening for seniors.', 'Oct 18, 2026', '09:00 AM', '12:00 PM', 'Barangay Multipurpose Hall', 'Office for Senior Citizens Affairs', 88, './src/components/photo/annimg.jpg'),
+                    ('EVT-3', 'Disaster Preparedness & Fire Safety Drill', 'Safety', 'Hands-on fire extinguisher usage demonstration, earthquake drill, and emergency kit prep tutorial.', 'Oct 25, 2026', '01:30 PM', '04:30 PM', 'Barangay Plaza', 'BFP & Barangay Tanod Unit', 65, './src/components/photo/clean.jpg');");
+            }
+        } catch (Throwable $e) {}
 
         // Ensure user deguzmanfrancis50@gmail.com password is Francis25
         try {
@@ -321,18 +613,16 @@ if (!$db) {
 // IMPORTANT: rotate your old private key in the EmailJS dashboard, then put the NEW one
 // in an environment variable (EMAILJS_PRIVATE_KEY) or replace the placeholder below.
 if (!defined('EMAILJS_SERVICE_ID'))
-    define('EMAILJS_SERVICE_ID', 'service_9e6uh5m');
+    define('EMAILJS_SERVICE_ID', getenv('EMAILJS_SERVICE_ID') ?: 'service_9e6uh5m');
 if (!defined('EMAILJS_TEMPLATE_ID'))
-    define('EMAILJS_TEMPLATE_ID', 'template_bhj96te');
+    define('EMAILJS_TEMPLATE_ID', getenv('EMAILJS_TEMPLATE_ID') ?: 'template_bhj96te');
 if (!defined('EMAILJS_PUBLIC_KEY'))
-    define('EMAILJS_PUBLIC_KEY', '2XyHVmKrON-bsuB5b');
+    define('EMAILJS_PUBLIC_KEY', getenv('EMAILJS_PUBLIC_KEY') ?: '2XyHVmKrON-bsuB5b');
 if (!defined('EMAILJS_PRIVATE_KEY'))
-    define('EMAILJS_PRIVATE_KEY', 'ibNdiVTbRXiaNas7hE5YG');
+    define('EMAILJS_PRIVATE_KEY', getenv('EMAILJS_PRIVATE_KEY') ?: 'ibNdiVTbRXiaNas7hE5YG');
 
 /**
- * Sends the reset code via EmailJS REST API. Requires
- * "Allow EmailJS API for non-browser applications" to be enabled in
- * EmailJS dashboard -> Account -> Security.
+ * Sends the reset code via EmailJS REST API.
  */
 function send_reset_email(string $email, string $code): bool
 {
@@ -388,6 +678,28 @@ function json_post()
 
 function require_login()
 {
-    if (empty($_SESSION['user_id']))
+    if (empty($_SESSION['user_id'])) {
         out(['success' => false, 'message' => 'Not logged in'], 401);
+    }
+}
+
+function require_admin()
+{
+    require_login();
+    if (($_SESSION['role'] ?? '') !== 'Admin') {
+        out(['success' => false, 'message' => 'Admin privileges required.'], 403);
+    }
+}
+
+function create_notification(string $title, string $message, ?string $link = null, ?int $userId = null): bool
+{
+    global $db;
+    if (!$db) return false;
+    try {
+        $stmt = $db->prepare('INSERT INTO notifications (user_id, title, message, link, is_read, created_at) VALUES (?, ?, ?, ?, 0, NOW())');
+        return $stmt->execute([$userId, $title, $message, $link]);
+    } catch (Throwable $e) {
+        error_log('create_notification error: ' . $e->getMessage());
+        return false;
+    }
 }
