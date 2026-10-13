@@ -73,8 +73,7 @@ if (php_sapi_name() !== 'cli') {
 
 // Supabase PostgreSQL (PRIMARY - works from Render, no locking issues)
 $supabaseUrl    = getenv('SUPABASE_DB_URL')  ?: ($_ENV['SUPABASE_DB_URL']  ?? '');
-$supabasePass   = getenv('SUPABASE_DB_PASS') ?: ($_ENV['SUPABASE_DB_PASS'] ?? '');
-// Supabase project ref extracted from URL
+$supabasePass   = getenv('SUPABASE_DB_PASS') ?: ($_ENV['SUPABASE_DB_PASS'] ?? 'YBca!-V&3%r_8a8');
 $supabaseRef    = 'nbkbijmelwlareisrwfl';
 $supabaseHost   = "db.{$supabaseRef}.supabase.co";
 $supabasePort   = '5432';

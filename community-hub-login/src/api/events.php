@@ -116,8 +116,9 @@ elseif ($action === 'create') {
     }
 
     $code = 'EVT-' . rand(100, 999);
-    $stmt = $db->prepare('INSERT INTO events (event_code, title, category, description, event_date, start_time, end_time, location, organizer, attendees_count, image, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, NOW())');
-    $stmt->execute([$code, $title, $category, $description, $eventDate, $startTime, $endTime, $location, $organizer, $imagePath]);
+    $now = date('Y-m-d H:i:s');
+    $stmt = $db->prepare('INSERT INTO events (event_code, title, category, description, event_date, start_time, end_time, location, organizer, attendees_count, image, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)');
+    $stmt->execute([$code, $title, $category, $description, $eventDate, $startTime, $endTime, $location, $organizer, $imagePath, $now]);
 
     $newId = $db->lastInsertId();
 
