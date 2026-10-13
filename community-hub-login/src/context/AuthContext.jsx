@@ -56,14 +56,24 @@ export function AuthProvider({ children }) {
     if (!user) return;
 
     const sendHeartbeat = () => {
+      // Just ping online status — lightweight write only
       fetch(`/api/online.php?action=heartbeat&username=${encodeURIComponent(user.username || '')}`, { credentials: 'include' })
-        .then(() => DB.fetchUsersFromApi())
         .catch(() => {});
     };
 
-    sendHeartbeat();
-    const interval = setInterval(sendHeartbeat, 4000);
-    return () => clearInterval(interval);
+    const refreshUsers = () => {
+      DB.fetchUsersFromApi().catch(() => {});
+    };
+
+    sendHeartbeat(); // immediate on login
+    refreshUsers();
+
+    const heartbeatInterval = setInterval(sendHeartbeat, 30000); // every 30s
+    const refreshInterval = setInterval(refreshUsers, 60000);    // every 60s
+    return () => {
+      clearInterval(heartbeatInterval);
+      clearInterval(refreshInterval);
+    };
   }, [user?.id, user?.username]);
 
   const demoLogin = (role = 'Resident') => {

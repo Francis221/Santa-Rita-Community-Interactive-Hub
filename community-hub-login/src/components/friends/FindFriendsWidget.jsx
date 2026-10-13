@@ -56,15 +56,15 @@ export default function FindFriendsWidget({ limit = 0, showHeader = true }) {
     window.addEventListener("friendsUpdated", handleUpdate);
     window.addEventListener("statsUpdated", handleUpdate);
 
-    // Full user+friend list refresh every 5 seconds
+    // Full user+friend list refresh every 30 seconds
     const interval = setInterval(() => {
       refreshResidents();
-    }, 5000);
+    }, 30000);
 
-    // Fast online-status-only poll every 3 seconds
+    // Fast online-status-only poll every 10 seconds
     const onlineInterval = setInterval(() => {
       refreshOnlineStatus();
-    }, 3000);
+    }, 10000);
 
     return () => {
       window.removeEventListener("friendsUpdated", handleUpdate);

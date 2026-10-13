@@ -1,129 +1,112 @@
 <?php
 require 'config.php';
 
-// Prevent warnings in JSON output
 ini_set('display_errors', '0');
 error_reporting(E_ALL);
 
+// Apply WAL mode for SQLite to prevent database locks
 try {
-    // Ensure is_online and last_active columns exist in users table
-    try {
-        $checkCol = $db->query("SHOW COLUMNS FROM users LIKE 'is_online'");
-        if ($checkCol->rowCount() == 0) {
-            $db->exec("ALTER TABLE users ADD COLUMN is_online TINYINT(1) DEFAULT 0");
-        }
-    } catch (Throwable $e) {
+    if ($db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+        $db->exec('PRAGMA journal_mode=WAL');
+        $db->exec('PRAGMA busy_timeout=10000');
     }
-
-    try {
-        $checkActive = $db->query("SHOW COLUMNS FROM users LIKE 'last_active'");
-        if ($checkActive->rowCount() == 0) {
-            $db->exec("ALTER TABLE users ADD COLUMN last_active DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
-        }
-    } catch (Throwable $e) {
-    }
-} catch (Throwable $e) {
-    error_log('Online table schema setup notice: ' . $e->getMessage());
-}
+} catch (Throwable $e) {}
 
 $action = $_GET['action'] ?? $_POST['action'] ?? 'status';
 $currentUserId = $_SESSION['user_id'] ?? null;
 $now = date('Y-m-d H:i:s');
-$threshold = date('Y-m-d H:i:s', time() - 300); // Users inactive for 5 minutes become offline
+$threshold = date('Y-m-d H:i:s', time() - 300); // 5 minutes
 
-// Handle Heartbeat (Keep Active User Online)
 if ($action === 'heartbeat') {
     $username = $_REQUEST['username'] ?? null;
 
     if (!$currentUserId && $username) {
-        $uStmt = $db->prepare('SELECT id FROM users WHERE username = ? OR email = ? LIMIT 1');
-        $uStmt->execute([$username, $username]);
-        $uRow = $uStmt->fetch();
-        if ($uRow)
-            $currentUserId = $uRow['id'];
+        try {
+            $uStmt = $db->prepare('SELECT id FROM users WHERE username = ? OR email = ? LIMIT 1');
+            $uStmt->execute([$username, $username]);
+            $uRow = $uStmt->fetch();
+            if ($uRow) $currentUserId = $uRow['id'];
+        } catch (Throwable $e) {}
     }
 
     if ($currentUserId) {
-        $stmt = $db->prepare('UPDATE users SET is_online = 1, last_active = ? WHERE id = ?');
-        $stmt->execute([$now, $currentUserId]);
+        try {
+            $db->prepare('UPDATE users SET is_online = 1, last_active = ? WHERE id = ?')
+               ->execute([$now, $currentUserId]);
+        } catch (Throwable $e) {}
     }
 
-    // Auto-mark users inactive for > 30 seconds as offline
     try {
-        $db->prepare("UPDATE users SET is_online = 0 WHERE last_active < ? AND is_online = 1")->execute([$threshold]);
-    } catch (Throwable $e) {
-    }
+        $db->prepare('UPDATE users SET is_online = 0 WHERE last_active < ? AND is_online = 1')
+           ->execute([$threshold]);
+    } catch (Throwable $e) {}
 
-    // Get current online count
-    $onlineCount = (int) $db->query("SELECT COUNT(*) FROM users WHERE is_online = 1")->fetchColumn();
+    $onlineCount = 0;
+    try {
+        $onlineCount = (int)$db->query('SELECT COUNT(*) FROM users WHERE is_online = 1')->fetchColumn();
+    } catch (Throwable $e) {}
 
-    out([
-        'success' => true,
-        'online_count' => $onlineCount,
-        'user_id' => $currentUserId,
-        'timestamp' => $now
-    ]);
+    out(['success' => true, 'online_count' => $onlineCount, 'user_id' => $currentUserId, 'timestamp' => $now]);
+
 } elseif ($action === 'toggle') {
     $input = json_post();
     $targetId = $input['id'] ?? $_REQUEST['id'] ?? null;
     $targetName = $input['username'] ?? $_REQUEST['username'] ?? null;
 
     if (!$targetId && $targetName) {
-        $uStmt = $db->prepare('SELECT id FROM users WHERE username = ? LIMIT 1');
-        $uStmt->execute([$targetName]);
-        $uRow = $uStmt->fetch();
-        if ($uRow)
-            $targetId = $uRow['id'];
+        try {
+            $uStmt = $db->prepare('SELECT id FROM users WHERE username = ? LIMIT 1');
+            $uStmt->execute([$targetName]);
+            $uRow = $uStmt->fetch();
+            if ($uRow) $targetId = $uRow['id'];
+        } catch (Throwable $e) {}
     }
 
     if ($targetId) {
-        $tStmt = $db->prepare('UPDATE users SET is_online = IF(is_online = 1, 0, 1), last_active = ? WHERE id = ?');
-        $tStmt->execute([$now, $targetId]);
-    }
-
-    $onlineCount = (int) $db->query("SELECT COUNT(*) FROM users WHERE is_online = 1")->fetchColumn();
-
-    out([
-        'success' => true,
-        'online_count' => $onlineCount
-    ]);
-} else {
-    // Action 'status' - Fetch all users and real-time online count
-    if ($currentUserId) {
         try {
-            $db->prepare('UPDATE users SET is_online = 1, last_active = ? WHERE id = ?')->execute([$now, $currentUserId]);
-        } catch (Throwable $e) {
-        }
+            // SQLite-compatible toggle (avoids IF() function)
+            $cur = $db->prepare('SELECT is_online FROM users WHERE id = ?');
+            $cur->execute([$targetId]);
+            $row = $cur->fetch();
+            $newVal = ($row && (int)$row['is_online'] === 1) ? 0 : 1;
+            $db->prepare('UPDATE users SET is_online = ?, last_active = ? WHERE id = ?')
+               ->execute([$newVal, $now, $targetId]);
+        } catch (Throwable $e) {}
     }
 
-    // Auto-clean stale online sessions first
+    $onlineCount = 0;
     try {
-        $db->prepare("UPDATE users SET is_online = 0 WHERE last_active < ? AND is_online = 1")->execute([$threshold]);
-    } catch (Throwable $e) {
-    }
+        $onlineCount = (int)$db->query('SELECT COUNT(*) FROM users WHERE is_online = 1')->fetchColumn();
+    } catch (Throwable $e) {}
 
-    $stmt = $db->query('SELECT id, username, email, role, avatar, is_online, last_active FROM users ORDER BY id DESC');
-    $users = $stmt->fetchAll();
+    out(['success' => true, 'online_count' => $onlineCount]);
 
-    $onlineUsers = array_filter($users, function ($u) {
-        return (int) $u['is_online'] === 1;
-    });
+} else {
+    // Action 'status' — return user list with real-time online flags
+    try {
+        $db->prepare('UPDATE users SET is_online = 0 WHERE last_active < ? AND is_online = 1')
+           ->execute([$threshold]);
+    } catch (Throwable $e) {}
 
-    $count = count($onlineUsers);
+    $users = [];
+    try {
+        $stmt = $db->query('SELECT id, username, email, role, avatar, COALESCE(is_online, 0) as is_online, last_active FROM users ORDER BY id DESC');
+        $users = $stmt->fetchAll();
+    } catch (Throwable $e) {}
+
+    $onlineCount = count(array_filter($users, fn($u) => (int)$u['is_online'] === 1));
 
     out([
-        'success' => true,
-        'online_count' => $count,
-        'users' => array_map(function ($u) {
-            return [
-                'id' => (int) $u['id'],
-                'username' => $u['username'],
-                'email' => $u['email'],
-                'role' => $u['role'] ?? 'Resident',
-                'avatar' => $u['avatar'],
-                'is_online' => (bool) $u['is_online'],
-                'last_active' => $u['last_active']
-            ];
-        }, $users)
+        'success'      => true,
+        'online_count' => $onlineCount,
+        'users'        => array_map(fn($u) => [
+            'id'          => (int)$u['id'],
+            'username'    => $u['username'],
+            'email'       => $u['email'],
+            'role'        => $u['role'] ?? 'Resident',
+            'avatar'      => $u['avatar'],
+            'is_online'   => (bool)$u['is_online'],
+            'last_active' => $u['last_active'],
+        ], $users),
     ]);
 }
