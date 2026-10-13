@@ -44,6 +44,7 @@
   color: var(--text-secondary);
   padding-bottom: 4px;
   border-bottom: 2px solid transparent;
+  white-space: nowrap;
 }
 
 .navbar__link:hover {
