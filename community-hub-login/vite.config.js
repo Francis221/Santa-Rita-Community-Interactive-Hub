@@ -6,10 +6,9 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1/communityhub/src/api',
+        target: 'https://santa-rita-community-interactive-hub-1.onrender.com',
         changeOrigin: true,
-        secure: false,
-        rewrite: (path) => path.replace(/^\/api/, ''),
+        secure: true,
       },
     },
   },
