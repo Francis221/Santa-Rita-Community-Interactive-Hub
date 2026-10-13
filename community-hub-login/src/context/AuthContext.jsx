@@ -136,41 +136,63 @@ export function AuthProvider({ children }) {
   };
 
   const register = async (username, email, password, photo = null) => {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 20000); // 20s timeout
+    const MAX_RETRIES = 3;
 
-    try {
-      const res = await fetch('/api/register.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        signal: controller.signal,
-        body: JSON.stringify({ username, email, password, photo }),
-      });
-      clearTimeout(timeout);
-      const { data, raw } = await readJson(res);
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 25000);
 
-      if (!data) {
-        console.error('Non-JSON response from register.php:', res.status, raw.slice(0, 500));
-        return {
-          success: false,
-          error: `Server returned an invalid response (HTTP ${res.status}). Please try again.`,
-        };
-      }
+      try {
+        const res = await fetch('/api/register.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          signal: controller.signal,
+          body: JSON.stringify({ username, email, password, photo }),
+        });
+        clearTimeout(timeout);
 
-      if (res.ok) {
-        try { await DB.fetchUsersFromApi(); } catch (e) {}
-        return { success: true, user: data?.user };
+        // 502/503 = Render server waking up — wait and retry
+        if ((res.status === 502 || res.status === 503) && attempt < MAX_RETRIES) {
+          await new Promise(r => setTimeout(r, 3000 * attempt));
+          continue;
+        }
+
+        const { data, raw } = await readJson(res);
+
+        if (!data) {
+          // Got non-JSON (HTML error page) — retry if server-side error
+          if ((res.status >= 500) && attempt < MAX_RETRIES) {
+            await new Promise(r => setTimeout(r, 3000 * attempt));
+            continue;
+          }
+          return { success: false, error: `Server error (HTTP ${res.status}). Please try again.` };
+        }
+
+        if (res.ok) {
+          try { await DB.fetchUsersFromApi(); } catch (e) {}
+          return { success: true, user: data?.user };
+        }
+        return { success: false, error: data.error || data.message || 'Registration failed' };
+
+      } catch (err) {
+        clearTimeout(timeout);
+        if (err.name === 'AbortError') {
+          if (attempt < MAX_RETRIES) {
+            await new Promise(r => setTimeout(r, 2000));
+            continue;
+          }
+          return { success: false, error: 'Server is waking up. Please try again in a moment.' };
+        }
+        if (attempt < MAX_RETRIES) {
+          await new Promise(r => setTimeout(r, 2000));
+          continue;
+        }
+        return { success: false, error: 'Cannot reach the server. Check your connection.' };
       }
-      return { success: false, error: data.error || data.message || 'Registration failed' };
-    } catch (err) {
-      clearTimeout(timeout);
-      if (err.name === 'AbortError') {
-        return { success: false, error: 'Server took too long to respond. Please try again in a moment.' };
-      }
-      console.error('Register error:', err);
-      return { success: false, error: 'Cannot reach the server. Check your connection.' };
     }
+
+    return { success: false, error: 'Server unavailable after multiple retries. Please try again later.' };
   };
 
   const logout = async () => {
