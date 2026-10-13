@@ -4,6 +4,7 @@ import barangaySeal from "../photo/logostarita.jpg";
 export default function GoodMoralTemplate({ data }) {
   const {
     applicantName = "FRANCIS REGIE DE GUZMAN",
+    age = 25,
     civilStatus = "Single",
     address = "Purok 3, Sta. Rita Central, Agoo, La Union",
     purpose = "Scholarship / School Requirement",
@@ -35,9 +36,9 @@ export default function GoodMoralTemplate({ data }) {
       <div className="doc-body-official">
         <p style={{ fontWeight: 'bold', textIndent: 0, fontSize: 16 }}>TO WHOM IT MAY CONCERN:</p>
         <p>
-          THIS IS TO CERTIFY that <span className="doc-highlight">{applicantName || "_______________________"}</span>, 
-          of legal age, <span className="doc-highlight">{civilStatus}</span>, Filipino citizen, residing at 
-          <span className="doc-highlight"> {address}</span>, is a resident of good moral standing in this community.
+          THIS IS TO CERTIFY that <span className="doc-highlight">{applicantName || "_______________________"}</span>,{" "}
+          <span className="doc-highlight">{age} years old</span>, <span className="doc-highlight">{civilStatus}</span>, Filipino citizen, residing at{" "}
+          <span className="doc-highlight">{address}</span>, is a resident of good moral standing in this community.
         </p>
         <p>
           THIS IS TO FURTHER CERTIFY that he/she is known to be law-abiding, trustworthy, and active in community affairs, 

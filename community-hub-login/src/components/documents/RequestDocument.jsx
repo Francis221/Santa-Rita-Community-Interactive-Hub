@@ -28,6 +28,19 @@ export default function RequestDocument() {
   const [docRequests, setDocRequests] = useState([]);
   const [submitSuccess, setSubmitSuccess] = useState("");
 
+  // Date dropdown state
+  const today = new Date();
+  const [dateMonth, setDateMonth] = useState(today.getMonth() + 1); // 1-12
+  const [dateDay, setDateDay] = useState(today.getDate());           // 1-31
+  const [dateYear, setDateYear] = useState(today.getFullYear());     // e.g. 2026
+
+  // Helper: build formatted dateIssued string from dropdowns
+  const buildDateIssued = (month, day, year) => {
+    const monthNames = ["January","February","March","April","May","June",
+      "July","August","September","October","November","December"];
+    return `${monthNames[month - 1]} ${day}, ${year}`;
+  };
+
   // Live auto-fill form state
   const [formData, setFormData] = useState({
     applicantName: user?.username ? user.username.toUpperCase() : "FRANCIS REGIE DE GUZMAN",
@@ -35,7 +48,7 @@ export default function RequestDocument() {
     age: 25,
     address: "Purok 3, Sta. Rita Central, Agoo, La Union",
     purpose: "Employment Requirement",
-    dateIssued: new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }),
+    dateIssued: buildDateIssued(today.getMonth() + 1, today.getDate(), today.getFullYear()),
     ctcNo: "CTC-2026-8841",
     orNo: "OR-99120",
   });
@@ -58,6 +71,17 @@ export default function RequestDocument() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // Date dropdown change handler
+  const handleDateChange = (field, value) => {
+    const newMonth = field === "month" ? Number(value) : dateMonth;
+    const newDay   = field === "day"   ? Number(value) : dateDay;
+    const newYear  = field === "year"  ? Number(value) : dateYear;
+    if (field === "month") setDateMonth(newMonth);
+    if (field === "day")   setDateDay(newDay);
+    if (field === "year")  setDateYear(newYear);
+    setFormData((prev) => ({ ...prev, dateIssued: buildDateIssued(newMonth, newDay, newYear) }));
   };
 
   // Quick preset button click handler
@@ -540,6 +564,47 @@ export default function RequestDocument() {
                 onChange={handleChange}
                 required
               />
+            </div>
+
+            {/* Date Issued — Month / Day / Year Dropdowns */}
+            <div className="doc-form-group">
+              <label>DATE ISSUED</label>
+              <div className="modal-form-row" style={{ gap: 8 }}>
+                {/* Month dropdown */}
+                <select
+                  className="doc-select"
+                  value={dateMonth}
+                  onChange={(e) => handleDateChange("month", e.target.value)}
+                  title="Select Month"
+                >
+                  {["January","February","March","April","May","June",
+                    "July","August","September","October","November","December"].map((m, i) => (
+                    <option key={m} value={i + 1}>{m}</option>
+                  ))}
+                </select>
+                {/* Day dropdown */}
+                <select
+                  className="doc-select"
+                  value={dateDay}
+                  onChange={(e) => handleDateChange("day", e.target.value)}
+                  title="Select Day"
+                >
+                  {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+                {/* Year dropdown */}
+                <select
+                  className="doc-select"
+                  value={dateYear}
+                  onChange={(e) => handleDateChange("year", e.target.value)}
+                  title="Select Year"
+                >
+                  {Array.from({ length: 10 }, (_, i) => today.getFullYear() - 2 + i).map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             {isAdmin && (

@@ -4,6 +4,7 @@ import barangaySeal from "../photo/logostarita.jpg";
 export default function IndigencyTemplate({ data }) {
   const {
     applicantName = "FRANCIS REGIE DE GUZMAN",
+    age = 25,
     civilStatus = "Single",
     address = "Purok 3, Sta. Rita Central, Agoo, La Union",
     purpose = "Financial & Medical Assistance",
@@ -35,9 +36,9 @@ export default function IndigencyTemplate({ data }) {
       <div className="doc-body-official">
         <p style={{ fontWeight: 'bold', textIndent: 0, fontSize: 16 }}>TO WHOM IT MAY CONCERN:</p>
         <p>
-          THIS IS TO CERTIFY that <span className="doc-highlight">{applicantName || "_______________________"}</span>, 
-          of legal age, <span className="doc-highlight">{civilStatus}</span>, Filipino citizen, is a permanent resident of 
-          <span className="doc-highlight"> {address}</span>.
+          THIS IS TO CERTIFY that <span className="doc-highlight">{applicantName || "_______________________"}</span>,{" "}
+          <span className="doc-highlight">{age} years old</span>, <span className="doc-highlight">{civilStatus}</span>, Filipino citizen, is a permanent resident of{" "}
+          <span className="doc-highlight">{address}</span>.
         </p>
         <p>
           THIS IS TO FURTHER CERTIFY that the above-named person belongs to an indigent family in this barangay 
