@@ -96,13 +96,18 @@ export function AuthProvider({ children }) {
   };
 
   const login = async (loginInput, password) => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000);
+
     try {
       const res = await fetch('/api/login.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
+        signal: controller.signal,
         body: JSON.stringify({ login: loginInput, password }),
       });
+      clearTimeout(timeout);
       const { data, raw } = await readJson(res);
 
       if (!data) {
@@ -116,46 +121,55 @@ export function AuthProvider({ children }) {
       if (res.ok && data.user) {
         localStorage.removeItem('chub_demo_user');
         setUser(data.user);
-        try {
-          await DB.fetchUsersFromApi();
-        } catch (e) {}
+        try { await DB.fetchUsersFromApi(); } catch (e) {}
         return { success: true, user: data.user };
       }
       return { success: false, error: data.error || 'Invalid credentials' };
     } catch (err) {
+      clearTimeout(timeout);
+      if (err.name === 'AbortError') {
+        return { success: false, error: 'Server took too long. It may be waking up — please try again.' };
+      }
       console.error('Login error:', err);
-      return { success: false, error: 'Cannot reach the server. Is Apache/PHP running?' };
+      return { success: false, error: 'Cannot reach the server. Check your connection.' };
     }
   };
 
   const register = async (username, email, password, photo = null) => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 20000); // 20s timeout
+
     try {
       const res = await fetch('/api/register.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
+        signal: controller.signal,
         body: JSON.stringify({ username, email, password, photo }),
       });
+      clearTimeout(timeout);
       const { data, raw } = await readJson(res);
 
       if (!data) {
         console.error('Non-JSON response from register.php:', res.status, raw.slice(0, 500));
         return {
           success: false,
-          error: `Server returned an invalid response (HTTP ${res.status}). Check that PHP is running and see the browser console.`,
+          error: `Server returned an invalid response (HTTP ${res.status}). Please try again.`,
         };
       }
 
       if (res.ok) {
-        try {
-          await DB.fetchUsersFromApi();
-        } catch (e) {}
+        try { await DB.fetchUsersFromApi(); } catch (e) {}
         return { success: true, user: data?.user };
       }
       return { success: false, error: data.error || data.message || 'Registration failed' };
     } catch (err) {
+      clearTimeout(timeout);
+      if (err.name === 'AbortError') {
+        return { success: false, error: 'Server took too long to respond. Please try again in a moment.' };
+      }
       console.error('Register error:', err);
-      return { success: false, error: 'Cannot reach the server. Is Apache/PHP running?' };
+      return { success: false, error: 'Cannot reach the server. Check your connection.' };
     }
   };
 
