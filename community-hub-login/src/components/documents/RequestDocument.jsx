@@ -425,7 +425,7 @@ export default function RequestDocument() {
     <div className="page docs-page">
       {/* Header section */}
       <div className="docs-header">
-        <h1>{isAdmin ? "Document Requests & Certificate Issuance" : "Request Barangay Document"}</h1>
+        <h1>{isAdmin ? "Resident Document Requests Database" : "Request Barangay Document"}</h1>
         <p>
           {isAdmin
             ? "Review and manage resident document requests, accept or decline submissions, and print official certificates."
@@ -454,45 +454,49 @@ export default function RequestDocument() {
         </div>
       )}
 
-      {/* Document Selector Tabs */}
-      <div className="docs-type-tabs">
-        {DOC_TYPES.map((doc) => (
-          /* Button to switch active document template */
-          <button
-            key={doc.id}
-            className={`doc-tab-btn ${activeDocType === doc.id ? "doc-tab-btn--active" : ""}`}
-            onClick={() => setActiveDocType(doc.id)}
-            title={`Select ${doc.label}`}
-          >
-            <span>{doc.icon}</span>
-            <span>{doc.label}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* Form Workspace Grid */}
-      <div className="docs-workspace-grid">
-        {/* Editor Form Card */}
-        <div className="docs-editor-card">
-          <div className="editor-section-title">
-            <span>{isAdmin ? "ADMIN DOCUMENT GENERATOR" : "REQUEST FORM DETAILS"}</span>
-            <span className="autofill-hint">⚡ LIVE PREVIEW ACTIVE</span>
+      {/* Residents only: Document type tabs + form + live preview */}
+      {!isAdmin && (
+        <>
+          {/* Document Selector Tabs */}
+          <div className="docs-type-tabs">
+            {DOC_TYPES.map((doc) => (
+              /* Button to switch active document template */
+              <button
+                key={doc.id}
+                className={`doc-tab-btn ${activeDocType === doc.id ? "doc-tab-btn--active" : ""}`}
+                onClick={() => setActiveDocType(doc.id)}
+                title={`Select ${doc.label}`}
+              >
+                <span>{doc.icon}</span>
+                <span>{doc.label}</span>
+              </button>
+            ))}
           </div>
+        </>
 
-          <form onSubmit={handleSubmitRequest}>
-            {/* Applicant Name Input */}
-            <div className="doc-form-group">
-              <label>FULL NAME (APPLICANT)</label>
-              <input
-                type="text"
-                name="applicantName"
-                className="doc-input"
-                placeholder="Type applicant full name..."
-                value={formData.applicantName}
-                onChange={handleChange}
-                required
-              />
-              {!isAdmin && (
+      {/* Residents only: Form + Live Preview */}
+      {!isAdmin && (
+        <div className="docs-workspace-grid">
+          {/* Editor Form Card */}
+          <div className="docs-editor-card">
+            <div className="editor-section-title">
+              <span>REQUEST FORM DETAILS</span>
+              <span className="autofill-hint">⚡ LIVE PREVIEW ACTIVE</span>
+            </div>
+
+            <form onSubmit={handleSubmitRequest}>
+              {/* Applicant Name Input */}
+              <div className="doc-form-group">
+                <label>FULL NAME (APPLICANT)</label>
+                <input
+                  type="text"
+                  name="applicantName"
+                  className="doc-input"
+                  placeholder="Type applicant full name..."
+                  value={formData.applicantName}
+                  onChange={handleChange}
+                  required
+                />
                 <div className="doc-presets">
                   <span style={{ fontSize: 11, color: "#94a3b8", alignSelf: "center" }}>Quick Fill:</span>
                   {/* Button to quickly auto-fill user's own username */}
@@ -505,139 +509,106 @@ export default function RequestDocument() {
                     {user?.username || "JUAN DELA CRUZ"}
                   </button>
                 </div>
-              )}
-            </div>
-
-            <div className="modal-form-row">
-              {/* Civil Status Selection */}
-              <div className="doc-form-group">
-                <label>CIVIL STATUS</label>
-                <select
-                  name="civilStatus"
-                  className="doc-select"
-                  value={formData.civilStatus}
-                  onChange={handleChange}
-                >
-                  <option value="Single">Single</option>
-                  <option value="Married">Married</option>
-                  <option value="Widowed">Widowed</option>
-                  <option value="Separated">Separated</option>
-                </select>
               </div>
 
-              {/* Age Input */}
+              <div className="modal-form-row">
+                {/* Civil Status Selection */}
+                <div className="doc-form-group">
+                  <label>CIVIL STATUS</label>
+                  <select
+                    name="civilStatus"
+                    className="doc-select"
+                    value={formData.civilStatus}
+                    onChange={handleChange}
+                  >
+                    <option value="Single">Single</option>
+                    <option value="Married">Married</option>
+                    <option value="Widowed">Widowed</option>
+                    <option value="Separated">Separated</option>
+                  </select>
+                </div>
+
+                {/* Age Input */}
+                <div className="doc-form-group">
+                  <label>AGE</label>
+                  <input
+                    type="number"
+                    name="age"
+                    className="doc-input"
+                    value={formData.age}
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
+
+              {/* Address Input */}
               <div className="doc-form-group">
-                <label>AGE</label>
+                <label>COMPLETE ADDRESS / PUROK</label>
                 <input
-                  type="number"
-                  name="age"
+                  type="text"
+                  name="address"
                   className="doc-input"
-                  value={formData.age}
+                  placeholder="e.g. Purok 3, Sta. Rita Central, Agoo, La Union"
+                  value={formData.address}
                   onChange={handleChange}
+                  required
                 />
               </div>
-            </div>
 
-            {/* Address Input */}
-            <div className="doc-form-group">
-              <label>COMPLETE ADDRESS / PUROK</label>
-              <input
-                type="text"
-                name="address"
-                className="doc-input"
-                placeholder="e.g. Purok 3, Sta. Rita Central, Agoo, La Union"
-                value={formData.address}
-                onChange={handleChange}
-                required
-              />
-            </div>
-
-            {/* Purpose Input */}
-            <div className="doc-form-group">
-              <label>PURPOSE OF REQUEST</label>
-              <input
-                type="text"
-                name="purpose"
-                className="doc-input"
-                placeholder="e.g. Employment, Scholarship, Financial Assistance"
-                value={formData.purpose}
-                onChange={handleChange}
-                required
-              />
-            </div>
-
-            {/* Date Issued — Month / Day / Year Dropdowns */}
-            <div className="doc-form-group">
-              <label>DATE ISSUED</label>
-              <div className="modal-form-row" style={{ gap: 8 }}>
-                {/* Month dropdown */}
-                <select
-                  className="doc-select"
-                  value={dateMonth}
-                  onChange={(e) => handleDateChange("month", e.target.value)}
-                  title="Select Month"
-                >
-                  {["January","February","March","April","May","June",
-                    "July","August","September","October","November","December"].map((m, i) => (
-                    <option key={m} value={i + 1}>{m}</option>
-                  ))}
-                </select>
-                {/* Day dropdown */}
-                <select
-                  className="doc-select"
-                  value={dateDay}
-                  onChange={(e) => handleDateChange("day", e.target.value)}
-                  title="Select Day"
-                >
-                  {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
-                    <option key={d} value={d}>{d}</option>
-                  ))}
-                </select>
-                {/* Year dropdown */}
-                <select
-                  className="doc-select"
-                  value={dateYear}
-                  onChange={(e) => handleDateChange("year", e.target.value)}
-                  title="Select Year"
-                >
-                  {Array.from({ length: 10 }, (_, i) => today.getFullYear() - 2 + i).map((y) => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </select>
+              {/* Purpose Input */}
+              <div className="doc-form-group">
+                <label>PURPOSE OF REQUEST</label>
+                <input
+                  type="text"
+                  name="purpose"
+                  className="doc-input"
+                  placeholder="e.g. Employment, Scholarship, Financial Assistance"
+                  value={formData.purpose}
+                  onChange={handleChange}
+                  required
+                />
               </div>
-            </div>
 
-            {isAdmin && (
-              <div className="modal-form-row">
-                {/* CTC Number Input (Admin) */}
-                <div className="doc-form-group">
-                  <label>CTC NUMBER</label>
-                  <input
-                    type="text"
-                    name="ctcNo"
-                    className="doc-input"
-                    value={formData.ctcNo}
-                    onChange={handleChange}
-                  />
-                </div>
-
-                {/* OR Number Input (Admin) */}
-                <div className="doc-form-group">
-                  <label>O.R. NUMBER</label>
-                  <input
-                    type="text"
-                    name="orNo"
-                    className="doc-input"
-                    value={formData.orNo}
-                    onChange={handleChange}
-                  />
+              {/* Date Issued — Month / Day / Year Dropdowns */}
+              <div className="doc-form-group">
+                <label>DATE ISSUED</label>
+                <div className="modal-form-row" style={{ gap: 8 }}>
+                  <select
+                    className="doc-select"
+                    value={dateMonth}
+                    onChange={(e) => handleDateChange("month", e.target.value)}
+                    title="Select Month"
+                  >
+                    {["January","February","March","April","May","June",
+                      "July","August","September","October","November","December"].map((m, i) => (
+                      <option key={m} value={i + 1}>{m}</option>
+                    ))}
+                  </select>
+                  <select
+                    className="doc-select"
+                    value={dateDay}
+                    onChange={(e) => handleDateChange("day", e.target.value)}
+                    title="Select Day"
+                  >
+                    {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
+                  <select
+                    className="doc-select"
+                    value={dateYear}
+                    onChange={(e) => handleDateChange("year", e.target.value)}
+                    title="Select Year"
+                  >
+                    {Array.from({ length: 10 }, (_, i) => today.getFullYear() - 2 + i).map((y) => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
-            )}
 
-            <div className="editor-actions">
-              {!isAdmin ? (
-                /* Button for residents to submit a document request */
+              <div className="editor-actions">
+                {/* Button for residents to submit a document request */}
                 <button
                   type="submit"
                   className="btn-doc-primary btn-doc-single"
@@ -646,41 +617,31 @@ export default function RequestDocument() {
                 >
                   Request Documents
                 </button>
-              ) : (
-                <>
-                  {/* Button for admin to save request */}
-                  <button type="submit" className="btn-doc-primary" title="Save document to database">
-                    💾 Save Request
-                  </button>
-                  {/* Button for admin to print or export current preview */}
-                  <button type="button" className="btn-doc-print" onClick={handlePrint} title="Print Certificate">
-                    <Printer size={16} /> Print / Export
-                  </button>
-                </>
-              )}
-            </div>
-          </form>
-        </div>
-
-        {/* Live Printable Preview Template */}
-        <div>
-          <div
-            style={{
-              marginBottom: 10,
-              fontSize: 12,
-              fontWeight: 700,
-              letterSpacing: "0.08em",
-              color: "#94a3b8",
-              textTransform: "uppercase",
-            }}
-          >
-            OFFICIAL CERTIFICATE PREVIEW
+              </div>
+            </form>
           </div>
-          {renderTemplatePreview()}
-        </div>
-      </div>
 
-      {/* Document Requests Records Table */}
+          {/* Live Printable Preview Template */}
+          <div>
+            <div
+              style={{
+                marginBottom: 10,
+                fontSize: 12,
+                fontWeight: 700,
+                letterSpacing: "0.08em",
+                color: "#94a3b8",
+                textTransform: "uppercase",
+              }}
+            >
+              OFFICIAL CERTIFICATE PREVIEW
+            </div>
+            {renderTemplatePreview()}
+          </div>
+        </div>
+      )}
+
+      {/* Document Requests Records Table — Admin only */}
+      {isAdmin && (
       <div className="doc-requests-table-card">
         <div
           className="records-card__header"
@@ -845,6 +806,7 @@ export default function RequestDocument() {
           </table>
         </div>
       </div>
+      )}
     </div>
   );
 }
