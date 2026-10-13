@@ -53,6 +53,7 @@ class ChatsMainframe extends React.Component {
     this.handleOpenNewChatModal = this.handleOpenNewChatModal.bind(this);
     this.handleCloseNewChatModal = this.handleCloseNewChatModal.bind(this);
     this.handleCreateNewChat = this.handleCreateNewChat.bind(this);
+    this.loadFriends = this.loadFriends.bind(this);
   }
 
   getMyId() {
@@ -70,6 +71,7 @@ class ChatsMainframe extends React.Component {
   }
 
   componentDidMount() {
+    this.loadFriends();
     this.loadConversations();
     this.loadActiveMessages(this.state.activeConversationId);
     this.sendOnlineHeartbeat();
@@ -142,6 +144,58 @@ class ChatsMainframe extends React.Component {
         })
         .catch(() => {});
     } catch (e) {}
+  }
+
+  // Fetch confirmed friends and inject them as conversations
+  loadFriends() {
+    const myId = this.getMyId();
+    const colors = ['#2563eb','#10b981','#f59e0b','#8b5cf6','#ef4444','#06b6d4','#ec4899'];
+
+    // Step 1: get friend IDs
+    fetch(`/api/friends.php?user_id=${myId}`, { credentials: 'include' })
+      .then(res => res.json())
+      .then(data => {
+        if (!data || !Array.isArray(data.friends) || data.friends.length === 0) return;
+
+        // Step 2: get all users to match names/roles
+        return fetch(`/api/users.php`, { credentials: 'include' })
+          .then(res => res.json())
+          .then(usersData => {
+            const allUsers = Array.isArray(usersData) ? usersData
+              : Array.isArray(usersData?.users) ? usersData.users : [];
+
+            const friendConvs = data.friends.map((otherId, i) => {
+              const friendUser = allUsers.find(u => Number(u.id) === Number(otherId));
+              const name = friendUser?.username || friendUser?.name || `User ${otherId}`;
+              const role = friendUser?.role || 'Resident';
+              const minId = Math.min(myId, Number(otherId));
+              const maxId = Math.max(myId, Number(otherId));
+              const convId = `conv_${minId}_${maxId}`;
+              const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+              return {
+                id: convId,
+                other_user_id: Number(otherId),
+                name,
+                role,
+                initials,
+                avatarColor: colors[i % colors.length],
+                isGroup: false,
+                isOnline: Boolean(friendUser?.isOnline),
+                unreadCount: 0,
+                lastMessage: 'Start a conversation...',
+                lastTime: '',
+              };
+            });
+
+            this.setState(prev => {
+              const existingIds = new Set(prev.conversations.map(c => c.id));
+              const newOnes = friendConvs.filter(fc => !existingIds.has(fc.id));
+              if (newOnes.length === 0) return null; // no update needed
+              return { conversations: [...prev.conversations, ...newOnes] };
+            });
+          });
+      })
+      .catch(() => {});
   }
 
   loadConversations() {

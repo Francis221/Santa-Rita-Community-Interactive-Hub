@@ -189,10 +189,10 @@ export default function FindFriendsWidget({ limit = 0, showHeader = true }) {
                   />
                 </div>
 
-                <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap", justifyContent: "center" }}>
-                  <h3 className="friend-name">{resident.name}</h3>
+                <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "nowrap", justifyContent: "center", maxWidth: "100%", overflow: "hidden" }}>
+                  <h3 className="friend-name" style={{ margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{resident.name}</h3>
                   {resident.isSelf && (
-                    <span className="self-tag">(You)</span>
+                    <span className="self-tag" style={{ flexShrink: 0 }}>(You)</span>
                   )}
                 </div>
 
