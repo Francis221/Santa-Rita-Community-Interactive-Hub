@@ -638,6 +638,117 @@ export default function RequestDocument() {
         </>
       )}
 
+      {/* Resident: My Document Request Status Table */}
+      {!isAdmin && (
+        <div className="doc-requests-table-card" style={{ marginTop: 32 }}>
+          <div
+            className="records-card__header"
+            style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}
+          >
+            <h2 className="records-card__title" style={{ fontSize: 18, fontWeight: 700, color: "#fff", margin: 0 }}>
+              📋 My Document Request Status
+            </h2>
+            <button
+              className="records-card__view-all"
+              onClick={refreshRequests}
+              style={{
+                background: "rgba(255,255,255,0.08)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                color: "#cbd5e1",
+                padding: "6px 12px",
+                borderRadius: 8,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                fontSize: 12,
+              }}
+              title="Refresh my requests"
+            >
+              <RefreshCw size={14} /> Refresh
+            </button>
+          </div>
+          <div style={{ overflowX: "auto" }}>
+            <table className="records-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>DOCUMENT TYPE</th>
+                  <th>PURPOSE</th>
+                  <th>STATUS</th>
+                  <th>DATE REQUESTED</th>
+                  <th>DOWNLOAD</th>
+                </tr>
+              </thead>
+              <tbody>
+                {docRequests.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} style={{ textAlign: "center", color: "#94a3b8", padding: "24px" }}>
+                      You have no document requests yet. Fill the form above to submit one.
+                    </td>
+                  </tr>
+                ) : (
+                  docRequests.map((req) => {
+                    const isApproved = req.status === "Approved" || req.status === "Accepted";
+                    const isDeclined = req.status === "Declined";
+                    return (
+                      <tr key={req.id}>
+                        <td style={{ fontWeight: "bold" }}>{req.id}</td>
+                        <td>
+                          <span style={{ textTransform: "uppercase", fontWeight: 600, color: "#60a5fa" }}>
+                            {req.docType}
+                          </span>
+                        </td>
+                        <td>{req.purpose}</td>
+                        <td>
+                          <span
+                            className={`badge-status badge-status--${
+                              isApproved ? "settled" : isDeclined ? "unsettled" : "pending"
+                            }`}
+                          >
+                            {isApproved ? "✅ Approved" : isDeclined ? "❌ Declined" : "⏳ Pending"}
+                          </span>
+                        </td>
+                        <td>{req.dateRequested}</td>
+                        <td>
+                          {isApproved ? (
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadApprovedDocument(req)}
+                              style={{
+                                background: "linear-gradient(135deg, #10b981, #059669)",
+                                border: "none",
+                                color: "#ffffff",
+                                padding: "6px 14px",
+                                borderRadius: "6px",
+                                fontSize: "12px",
+                                fontWeight: 600,
+                                cursor: "pointer",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "5px",
+                                boxShadow: "0 2px 8px rgba(16, 185, 129, 0.3)",
+                              }}
+                              title="Download approved letter"
+                            >
+                              <Download size={14} /> Download Letter
+                            </button>
+                          ) : (
+                            <span style={{ fontSize: "12px", color: "#94a3b8" }}>
+                              {isDeclined ? "Declined by Admin" : "Awaiting approval"}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* Document Requests Records Table — Admin only */}
       {isAdmin && (
       <div className="doc-requests-table-card">
