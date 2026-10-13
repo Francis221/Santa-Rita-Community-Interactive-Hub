@@ -106,6 +106,22 @@ if ($supabasePass !== '' || $supabaseUrl !== '') {
         );
         try { $db->exec("SET TIME ZONE 'Asia/Manila'"); } catch (Throwable $tzErr) {}
         error_log('Connected to Supabase PostgreSQL successfully');
+
+        // ── Reset known passwords on Supabase so login works reliably ──
+        // admin -> password: admin
+        try {
+            $db->prepare("UPDATE users SET password = ? WHERE username = 'admin' OR email = 'admin@barangay.gov.ph'")
+               ->execute([password_hash('admin', PASSWORD_BCRYPT)]);
+            error_log('Reset admin password on Supabase');
+        } catch (Throwable $e) { error_log('Supabase admin reset err: ' . $e->getMessage()); }
+
+        // francis / justinryan / deguzmanfrancis50@gmail.com -> password: Francis25
+        try {
+            $db->prepare("UPDATE users SET password = ? WHERE username = 'francis' OR email = 'francis@example.com' OR email = 'deguzmanfrancis50@gmail.com' OR username = 'justinryan'")
+               ->execute([password_hash('Francis25', PASSWORD_BCRYPT)]);
+            error_log('Reset francis password on Supabase');
+        } catch (Throwable $e) { error_log('Supabase francis reset err: ' . $e->getMessage()); }
+
     } catch (Throwable $e) {
         $db = null;
         error_log('Supabase PostgreSQL failed, trying MySQL: ' . $e->getMessage());

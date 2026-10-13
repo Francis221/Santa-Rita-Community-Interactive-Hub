@@ -30,8 +30,9 @@ $_SESSION['username'] = $u['username'];
 $_SESSION['role'] = $u['role'] ?? 'Resident';
 
 try {
-    // Ensure login_logs table exists
-    if ($db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+    $driver = $db->getAttribute(PDO::ATTR_DRIVER_NAME);
+    // Ensure login_logs table exists (compatible with SQLite, MySQL, and PostgreSQL)
+    if ($driver === 'sqlite') {
         $db->exec("CREATE TABLE IF NOT EXISTS login_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,
@@ -41,6 +42,16 @@ try {
             user_agent TEXT DEFAULT NULL,
             login_time DATETIME DEFAULT CURRENT_TIMESTAMP
         );");
+    } elseif ($driver === 'pgsql') {
+        $db->exec("CREATE TABLE IF NOT EXISTS login_logs (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL,
+            username VARCHAR(100) NOT NULL,
+            role VARCHAR(50) DEFAULT 'Resident',
+            ip_address VARCHAR(45) DEFAULT NULL,
+            user_agent TEXT DEFAULT NULL,
+            login_time TIMESTAMP DEFAULT NOW()
+        )");
     } else {
         $db->exec("CREATE TABLE IF NOT EXISTS login_logs (
             id INT AUTO_INCREMENT PRIMARY KEY,
