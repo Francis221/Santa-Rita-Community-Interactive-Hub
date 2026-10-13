@@ -5,6 +5,14 @@ require 'config.php';
 ini_set('display_errors', '0');
 error_reporting(E_ALL);
 
+// Enable WAL mode to prevent "database is locked" on SQLite (Render free tier)
+try {
+    if ($db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+        $db->exec('PRAGMA journal_mode=WAL');
+        $db->exec('PRAGMA busy_timeout=5000');
+    }
+} catch (Throwable $e) {}
+
 try {
     $in = json_post();
     $username = trim($in['username'] ?? '');
@@ -65,19 +73,43 @@ try {
     $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
     $savedAvatar = $photo;
 
-    try {
-        $stmt = $db->prepare("INSERT INTO users (username, email, password, role, avatar) VALUES (?, ?, ?, 'Resident', ?)");
-        $stmt->execute([$username, $email, $hashedPassword, $photo]);
-    } catch (Throwable $insertEx) {
-        // Fallback without avatar column in case avatar column is missing or failed
-        $stmt = $db->prepare("INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, 'Resident')");
-        $stmt->execute([$username, $email, $hashedPassword]);
-        $savedAvatar = null;
+    // Retry insert up to 3 times to handle SQLite "database is locked"
+    $inserted = false;
+    $lastError = null;
+    for ($attempt = 0; $attempt < 3; $attempt++) {
+        try {
+            $stmt = $db->prepare("INSERT INTO users (username, email, password, role, avatar) VALUES (?, ?, ?, 'Resident', ?)");
+            $stmt->execute([$username, $email, $hashedPassword, $photo]);
+            $inserted = true;
+            break;
+        } catch (Throwable $insertEx) {
+            $lastError = $insertEx;
+            // If locked, wait a bit and retry
+            if (strpos($insertEx->getMessage(), 'locked') !== false) {
+                usleep(200000 * ($attempt + 1)); // 200ms, 400ms, 600ms
+                continue;
+            }
+            // Fallback: try without avatar column
+            try {
+                $stmt = $db->prepare("INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, 'Resident')");
+                $stmt->execute([$username, $email, $hashedPassword]);
+                $savedAvatar = null;
+                $inserted = true;
+                break;
+            } catch (Throwable $e2) {
+                $lastError = $e2;
+            }
+        }
+    }
+
+    if (!$inserted) {
+        throw new Exception('Insert failed after retries: ' . ($lastError ? $lastError->getMessage() : 'unknown'));
     }
 
     $newId = (int)$db->lastInsertId();
 
     out([
+        'success' => true,
         'ok' => true,
         'message' => 'Account created successfully!',
         'user' => [
