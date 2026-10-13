@@ -460,7 +460,6 @@ export default function RequestDocument() {
           {/* Document Selector Tabs */}
           <div className="docs-type-tabs">
             {DOC_TYPES.map((doc) => (
-              /* Button to switch active document template */
               <button
                 key={doc.id}
                 className={`doc-tab-btn ${activeDocType === doc.id ? "doc-tab-btn--active" : ""}`}
@@ -472,11 +471,9 @@ export default function RequestDocument() {
               </button>
             ))}
           </div>
-        </>
 
-      {/* Residents only: Form + Live Preview */}
-      {!isAdmin && (
-        <div className="docs-workspace-grid">
+          {/* Form + Live Preview */}
+          <div className="docs-workspace-grid">
           {/* Editor Form Card */}
           <div className="docs-editor-card">
             <div className="editor-section-title">
@@ -638,6 +635,7 @@ export default function RequestDocument() {
             {renderTemplatePreview()}
           </div>
         </div>
+        </>
       )}
 
       {/* Document Requests Records Table — Admin only */}
