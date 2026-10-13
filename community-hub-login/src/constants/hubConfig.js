@@ -114,4 +114,5 @@ export const navLinks = [
   { id: "announcements", label: "Announcements", to: "/announcements" },
   { id: "events", label: "Events", to: "/events" },
   { id: "officials", label: "Officials", to: "/officials" },
+  { id: "chats", label: "Chats", to: "/chats" },
 ];
