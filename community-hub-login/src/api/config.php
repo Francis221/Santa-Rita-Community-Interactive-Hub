@@ -731,7 +731,8 @@ function json_post()
 
 function require_login()
 {
-    $headerId = $_SERVER['HTTP_X_USER_ID'] ?? ($_POST['user_id'] ?? '');
+    $input = json_post();
+    $headerId = $_SERVER['HTTP_X_USER_ID'] ?? ($_POST['user_id'] ?? ($input['user_id'] ?? ''));
     if (!empty($_SESSION['user_id']) || !empty($headerId)) {
         return;
     }
@@ -740,7 +741,8 @@ function require_login()
 
 function require_admin()
 {
-    $role = $_SESSION['role'] ?? ($_SERVER['HTTP_X_USER_ROLE'] ?? ($_POST['user_role'] ?? ''));
+    $input = json_post();
+    $role = $_SESSION['role'] ?? ($_SERVER['HTTP_X_USER_ROLE'] ?? ($_POST['user_role'] ?? ($input['user_role'] ?? '')));
     if ($role === 'Admin') {
         return;
     }
