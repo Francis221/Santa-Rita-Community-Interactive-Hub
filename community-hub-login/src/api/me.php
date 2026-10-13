@@ -2,8 +2,17 @@
 require 'config.php';
 require_login();
 
+// Apply WAL mode for SQLite
 try {
-    $db->prepare('UPDATE users SET is_online = 1, last_active = NOW() WHERE id = ?')->execute([$_SESSION['user_id']]);
+    if ($db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+        $db->exec('PRAGMA journal_mode=WAL');
+        $db->exec('PRAGMA busy_timeout=10000');
+    }
+} catch (Throwable $e) {}
+
+try {
+    $now = date('Y-m-d H:i:s');
+    $db->prepare('UPDATE users SET is_online = 1, last_active = ? WHERE id = ?')->execute([$now, $_SESSION['user_id']]);
 } catch (Throwable $e) {}
 
 $s = $db->prepare('SELECT id, username, email, role, avatar, COALESCE(full_name, username) as full_name, COALESCE(contact_number, phone) as contact_number, COALESCE(phone, contact_number) as phone, COALESCE(address, purok) as address, COALESCE(purok, address) as purok FROM users WHERE id = ?');

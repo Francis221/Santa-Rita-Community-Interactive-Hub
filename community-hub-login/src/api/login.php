@@ -4,6 +4,7 @@ $in = json_post();
 $login = trim($in['login'] ?? '');
 $password = $in['password'] ?? '';
 
+$now = date('Y-m-d H:i:s');
 $s = $db->prepare('SELECT * FROM users WHERE username = ? OR email = ? LIMIT 1');
 $s->execute([$login, $login]);
 $u = $s->fetch();
@@ -55,13 +56,13 @@ try {
     }
 
     // Mark logging-in user as online with current timestamp
-    $db->prepare('UPDATE users SET is_online = 1, last_active = NOW() WHERE id = ?')->execute([$u['id']]);
+    $db->prepare('UPDATE users SET is_online = 1, last_active = ? WHERE id = ?')->execute([$now, $u['id']]);
 
     // Record login in login_logs
     $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
     $ua = $_SERVER['HTTP_USER_AGENT'] ?? '';
-    $logStmt = $db->prepare('INSERT INTO login_logs (user_id, username, role, ip_address, user_agent, login_time) VALUES (?, ?, ?, ?, ?, NOW())');
-    $logStmt->execute([$u['id'], $u['username'], $u['role'] ?? 'Resident', $ip, $ua]);
+    $logStmt = $db->prepare('INSERT INTO login_logs (user_id, username, role, ip_address, user_agent, login_time) VALUES (?, ?, ?, ?, ?, ?)');
+    $logStmt->execute([$u['id'], $u['username'], $u['role'] ?? 'Resident', $ip, $ua, $now]);
 } catch (Throwable $e) {}
 
 out(['user' => [

@@ -1,38 +1,22 @@
 <?php
 require 'config.php';
 
-// Prevent warnings in JSON response
 ini_set('display_errors', '0');
 error_reporting(E_ALL);
 
 try {
-    // Ensure avatar, is_online, and last_active columns exist
-    if ($db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
-        try { $db->exec("ALTER TABLE users ADD COLUMN avatar TEXT DEFAULT NULL"); } catch (Throwable $e) {}
-        try { $db->exec("ALTER TABLE users ADD COLUMN is_online INTEGER DEFAULT 0"); } catch (Throwable $e) {}
-        try { $db->exec("ALTER TABLE users ADD COLUMN last_active DATETIME DEFAULT CURRENT_TIMESTAMP"); } catch (Throwable $e) {}
-    } else {
-        try {
-            $checkAvatar = $db->query("SHOW COLUMNS FROM users LIKE 'avatar'");
-            if ($checkAvatar->rowCount() == 0) {
-                $db->exec("ALTER TABLE users ADD COLUMN avatar LONGTEXT DEFAULT NULL");
-            }
-        } catch (Throwable $e) {}
+    // Add missing columns safely (works on both MySQL and SQLite via try/catch)
+    try { $db->exec("ALTER TABLE users ADD COLUMN avatar TEXT DEFAULT NULL"); } catch (Throwable $e) {}
+    try { $db->exec("ALTER TABLE users ADD COLUMN is_online INTEGER DEFAULT 0"); } catch (Throwable $e) {}
+    try { $db->exec("ALTER TABLE users ADD COLUMN last_active DATETIME DEFAULT CURRENT_TIMESTAMP"); } catch (Throwable $e) {}
 
-        try {
-            $checkCol = $db->query("SHOW COLUMNS FROM users LIKE 'is_online'");
-            if ($checkCol->rowCount() == 0) {
-                $db->exec("ALTER TABLE users ADD COLUMN is_online TINYINT(1) DEFAULT 0");
-            }
-        } catch (Throwable $e) {}
-
-        try {
-            $checkActive = $db->query("SHOW COLUMNS FROM users LIKE 'last_active'");
-            if ($checkActive->rowCount() == 0) {
-                $db->exec("ALTER TABLE users ADD COLUMN last_active DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
-            }
-        } catch (Throwable $e) {}
-    }
+    // Apply WAL mode for SQLite to prevent locks
+    try {
+        if ($db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+            $db->exec('PRAGMA journal_mode=WAL');
+            $db->exec('PRAGMA busy_timeout=10000');
+        }
+    } catch (Throwable $e) {}
 
     // Auto-mark inactive users (>5 mins) as offline
     $threshold = date('Y-m-d H:i:s', time() - 300);
@@ -45,20 +29,20 @@ try {
 
     out([
         'success' => true,
-        'count' => count($users),
-        'users' => array_map(function($u) {
+        'count'   => count($users),
+        'users'   => array_map(function($u) {
             return [
-                'id' => (int)$u['id'],
-                'username' => $u['username'],
-                'email' => $u['email'],
-                'role' => $u['role'] ?? 'Resident',
-                'avatar' => $u['avatar'],
-                'is_online' => (bool)$u['is_online'],
-                'last_active' => $u['last_active']
+                'id'          => (int)$u['id'],
+                'username'    => $u['username'],
+                'email'       => $u['email'],
+                'role'        => $u['role'] ?? 'Resident',
+                'avatar'      => $u['avatar'],
+                'is_online'   => (bool)$u['is_online'],
+                'last_active' => $u['last_active'],
             ];
-        }, $users)
+        }, $users),
     ]);
 } catch (Throwable $e) {
     error_log('Fetch users failed: ' . $e->getMessage());
-    out(['success' => false, 'error' => 'Failed to fetch registered users from database.'], 500);
+    out(['success' => false, 'error' => 'Failed to fetch users.'], 500);
 }

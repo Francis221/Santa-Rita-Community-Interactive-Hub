@@ -43,17 +43,10 @@ try {
     }
 
     if (!$errors) {
-        // Ensure avatar column exists in users table safely
-        try {
-            if ($db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
-                $db->exec("ALTER TABLE users ADD COLUMN avatar TEXT DEFAULT NULL");
-            } else {
-                $checkAvatar = $db->query("SHOW COLUMNS FROM users LIKE 'avatar'");
-                if ($checkAvatar->rowCount() == 0) {
-                    $db->exec("ALTER TABLE users ADD COLUMN avatar LONGTEXT DEFAULT NULL");
-                }
-            }
-        } catch (Throwable $e) {}
+        // Ensure avatar column exists — works on both MySQL and SQLite
+        try { $db->exec("ALTER TABLE users ADD COLUMN avatar TEXT DEFAULT NULL"); } catch (Throwable $e) {}
+        try { $db->exec("ALTER TABLE users ADD COLUMN is_online INTEGER DEFAULT 0"); } catch (Throwable $e) {}
+        try { $db->exec("ALTER TABLE users ADD COLUMN last_active DATETIME DEFAULT CURRENT_TIMESTAMP"); } catch (Throwable $e) {}
 
         // Duplicate check
         $s = $db->prepare('SELECT username, email FROM users WHERE username = ? OR email = ?');

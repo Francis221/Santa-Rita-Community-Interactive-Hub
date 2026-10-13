@@ -1,24 +1,43 @@
 <?php
 require 'config.php';
 
-// Disable HTML error output to keep JSON clean
 ini_set('display_errors', '0');
 error_reporting(E_ALL);
 
+// Apply WAL mode for SQLite
 try {
-    // Ensure messages table exists in MySQL database with proper indices
-    $db->exec("CREATE TABLE IF NOT EXISTS messages (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        sender_id INT NOT NULL,
-        receiver_id INT DEFAULT NULL,
-        conversation_id VARCHAR(100) DEFAULT NULL,
-        text TEXT NOT NULL,
-        is_read TINYINT(1) DEFAULT 0,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        INDEX (sender_id),
-        INDEX (receiver_id),
-        INDEX (conversation_id)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+    if ($db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+        $db->exec('PRAGMA journal_mode=WAL');
+        $db->exec('PRAGMA busy_timeout=10000');
+    }
+} catch (Throwable $e) {}
+
+// Ensure messages table exists (compatible with both MySQL and SQLite)
+try {
+    if ($db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+        $db->exec("CREATE TABLE IF NOT EXISTS messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sender_id INTEGER NOT NULL,
+            receiver_id INTEGER DEFAULT NULL,
+            conversation_id TEXT DEFAULT NULL,
+            text TEXT NOT NULL,
+            is_read INTEGER DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );");
+    } else {
+        $db->exec("CREATE TABLE IF NOT EXISTS messages (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            sender_id INT NOT NULL,
+            receiver_id INT DEFAULT NULL,
+            conversation_id VARCHAR(100) DEFAULT NULL,
+            text TEXT NOT NULL,
+            is_read TINYINT(1) DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            INDEX (sender_id),
+            INDEX (receiver_id),
+            INDEX (conversation_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+    }
 } catch (Throwable $e) {
     error_log('Messages table creation error: ' . $e->getMessage());
 }
