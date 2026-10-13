@@ -9,6 +9,7 @@ import {
   Menu,
   CheckCheck,
   Megaphone,
+  MessageCircle,
 } from "lucide-react";
 import { navLinks } from "../constants/hubConfig";
 import { useAuth } from "../context/AuthContext";
@@ -208,6 +209,17 @@ export default function Navbar() {
               {pendingRequestsCount}
             </span>
           )}
+        </button>
+
+        {/* Chat button — navigate to community messages */}
+        <button
+          className="navbar__icon-btn"
+          type="button"
+          aria-label="Community Chats"
+          title="Community Chats & Messages"
+          onClick={() => navigate("/chats")}
+        >
+          <MessageCircle size={18} strokeWidth={1.8} />
         </button>
 
         {/* Emergency Hotlines / Help */}

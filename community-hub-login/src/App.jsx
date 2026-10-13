@@ -18,6 +18,7 @@ import Placeholder from "./pages/Placeholder";
 import FindFriendsPage from "./components/friends/FindFriendsPage";
 import AnnouncementsPage from "./components/announcements/AnnouncementsPage";
 import EventsPage from "./components/events/EventsPage";
+import Chats from "./components/chats/Chats";
 import NotFound from "./pages/NotFound";
 import { useAuth } from "./context/AuthContext";
 
@@ -107,7 +108,7 @@ export default function App() {
             <Route path="/reports" element={<ProtectedReportRoute />} />
             <Route path="/request-document" element={<RequestDocument />} />
             <Route path="/profile" element={<Profile />} />
-            <Route path="/chats" element={<Navigate to="/" replace />} />
+            <Route path="/chats" element={<Chats />} />
             {PLACEHOLDER_ROUTES.map((route) => (
               <Route
                 key={route.path}
