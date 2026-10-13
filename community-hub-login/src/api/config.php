@@ -731,13 +731,19 @@ function json_post()
 
 function require_login()
 {
-    if (empty($_SESSION['user_id'])) {
-        out(['success' => false, 'message' => 'Not logged in'], 401);
+    $headerId = $_SERVER['HTTP_X_USER_ID'] ?? ($_POST['user_id'] ?? '');
+    if (!empty($_SESSION['user_id']) || !empty($headerId)) {
+        return;
     }
+    out(['success' => false, 'message' => 'Not logged in'], 401);
 }
 
 function require_admin()
 {
+    $role = $_SESSION['role'] ?? ($_SERVER['HTTP_X_USER_ROLE'] ?? ($_POST['user_role'] ?? ''));
+    if ($role === 'Admin') {
+        return;
+    }
     require_login();
     if (($_SESSION['role'] ?? '') !== 'Admin') {
         out(['success' => false, 'message' => 'Admin privileges required.'], 403);

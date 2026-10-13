@@ -13,12 +13,15 @@ if (!is_dir($uploadDir)) {
     @mkdir($uploadDir, 0755, true);
 }
 
-$action = $_GET['action'] ?? $_POST['action'] ?? $_REQUEST['action'] ?? 'list';
+$rawInput = file_get_contents('php://input');
+$jsonInput = json_decode($rawInput, true) ?: [];
+
+$action = $_GET['action'] ?? $_POST['action'] ?? $jsonInput['action'] ?? $_REQUEST['action'] ?? 'list';
 
 function format_event(array $e): array {
     return [
-        'id' => $e['event_code'],
-        'event_code' => $e['event_code'],
+        'id' => $e['event_code'] ?: ('EVT-' . $e['id']),
+        'event_code' => $e['event_code'] ?: ('EVT-' . $e['id']),
         'db_id' => (int)$e['id'],
         'title' => $e['title'],
         'category' => $e['category'] ?: 'Community',
@@ -70,14 +73,22 @@ if ($action === 'list') {
 elseif ($action === 'create') {
     require_admin();
 
-    $title = trim($_POST['title'] ?? '');
-    $category = trim($_POST['category'] ?? 'Community');
-    $description = trim($_POST['description'] ?? '');
-    $eventDate = trim($_POST['date'] ?? $_POST['event_date'] ?? '');
-    $startTime = trim($_POST['start_time'] ?? '9:00 AM');
-    $endTime = trim($_POST['end_time'] ?? '12:00 PM');
-    $location = trim($_POST['location'] ?? 'Barangay Plaza');
-    $organizer = trim($_POST['organizer'] ?? 'Barangay Council');
+    $title = trim($_POST['title'] ?? $jsonInput['title'] ?? '');
+    $category = trim($_POST['category'] ?? $jsonInput['category'] ?? 'Community');
+    $description = trim($_POST['description'] ?? $jsonInput['description'] ?? '');
+    $eventDate = trim($_POST['date'] ?? $_POST['event_date'] ?? $jsonInput['date'] ?? $jsonInput['event_date'] ?? '');
+    $startTime = trim($_POST['start_time'] ?? $jsonInput['start_time'] ?? '9:00 AM');
+    $endTime = trim($_POST['end_time'] ?? $jsonInput['end_time'] ?? '12:00 PM');
+    $location = trim($_POST['location'] ?? $jsonInput['location'] ?? 'Barangay Plaza');
+    $organizer = trim($_POST['organizer'] ?? $jsonInput['organizer'] ?? 'Barangay Council');
+
+    // Parse composite "time" string like "9:00 AM - 12:00 PM" if supplied
+    $timeRaw = trim($_POST['time'] ?? $jsonInput['time'] ?? '');
+    if ($timeRaw !== '' && str_contains($timeRaw, '-')) {
+        $parts = explode('-', $timeRaw, 2);
+        if ($startTime === '9:00 AM') $startTime = trim($parts[0]);
+        if ($endTime === '12:00 PM') $endTime = trim($parts[1]);
+    }
 
     if ($title === '' || $eventDate === '') {
         out(['success' => false, 'error' => 'Event title and date are required.'], 400);
@@ -87,7 +98,13 @@ elseif ($action === 'create') {
         out(['success' => false, 'error' => 'Event end time cannot be earlier than start time.'], 400);
     }
 
-    $imagePath = null;
+    // Default image path from text input or fallback
+    $imagePath = trim($_POST['image'] ?? $jsonInput['image'] ?? '');
+    if (empty($imagePath)) {
+        $imagePath = 'https://images.unsplash.com/photo-1511578314322-379afb476865?w=800&auto=format&fit=crop&q=80';
+    }
+
+    // Process file upload if provided
     if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
         $file = $_FILES['image'];
         if ($file['size'] > 5 * 1024 * 1024) {
@@ -115,14 +132,22 @@ elseif ($action === 'create') {
         }
     }
 
-    $code = 'EVT-' . rand(100, 999);
+    $code = 'EVT-' . rand(100, 9999);
     $now = date('Y-m-d H:i:s');
-    $stmt = $db->prepare('INSERT INTO events (event_code, title, category, description, event_date, start_time, end_time, location, organizer, attendees_count, image, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)');
-    $stmt->execute([$code, $title, $category, $description, $eventDate, $startTime, $endTime, $location, $organizer, $imagePath, $now]);
+    $driver = $db->getAttribute(PDO::ATTR_DRIVER_NAME);
 
-    $newId = $db->lastInsertId();
+    if ($driver === 'pgsql') {
+        $stmt = $db->prepare('INSERT INTO events (event_code, title, category, description, event_date, start_time, end_time, location, organizer, attendees_count, image, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, NOW()) RETURNING id');
+        $stmt->execute([$code, $title, $category, $description, $eventDate, $startTime, $endTime, $location, $organizer, $imagePath]);
+        $row = $stmt->fetch();
+        $newId = (int)($row['id'] ?? 0);
+    } else {
+        $stmt = $db->prepare('INSERT INTO events (event_code, title, category, description, event_date, start_time, end_time, location, organizer, attendees_count, image, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)');
+        $stmt->execute([$code, $title, $category, $description, $eventDate, $startTime, $endTime, $location, $organizer, $imagePath, $now]);
+        $newId = (int)$db->lastInsertId();
+    }
 
-    // Section 12: Notify residents through the bell when an event is created
+    // Notify residents through the bell when an event is created
     create_notification(
         "New Community Event: {$title}",
         "Date: {$eventDate} ({$startTime} - {$endTime}) at {$location}. Organized by {$organizer}.",
@@ -145,7 +170,7 @@ elseif ($action === 'create') {
             'organizer' => $organizer,
             'attendees_count' => 1,
             'image' => $imagePath,
-            'created_at' => date('Y-m-d H:i:s')
+            'created_at' => $now
         ])
     ]);
 }
@@ -156,26 +181,31 @@ elseif ($action === 'create') {
 elseif ($action === 'update') {
     require_admin();
 
-    $codeOrId = trim($_POST['id'] ?? $_POST['event_code'] ?? '');
+    $codeOrId = trim($_POST['id'] ?? $_POST['event_code'] ?? $jsonInput['id'] ?? $jsonInput['event_code'] ?? '');
     if ($codeOrId === '') {
         out(['success' => false, 'error' => 'Event ID is required.'], 400);
     }
 
-    $cStmt = $db->prepare('SELECT * FROM events WHERE id = ? OR event_code = ? LIMIT 1');
-    $cStmt->execute([$codeOrId, $codeOrId]);
+    if (is_numeric($codeOrId)) {
+        $cStmt = $db->prepare('SELECT * FROM events WHERE id = ? OR event_code = ? LIMIT 1');
+        $cStmt->execute([(int)$codeOrId, (string)$codeOrId]);
+    } else {
+        $cStmt = $db->prepare('SELECT * FROM events WHERE event_code = ? LIMIT 1');
+        $cStmt->execute([(string)$codeOrId]);
+    }
     $existing = $cStmt->fetch();
     if (!$existing) {
         out(['success' => false, 'error' => 'Event not found.'], 404);
     }
 
-    $title = trim($_POST['title'] ?? $existing['title']);
-    $category = trim($_POST['category'] ?? $existing['category']);
-    $description = trim($_POST['description'] ?? $existing['description']);
-    $eventDate = trim($_POST['date'] ?? $_POST['event_date'] ?? $existing['event_date']);
-    $startTime = trim($_POST['start_time'] ?? $existing['start_time']);
-    $endTime = trim($_POST['end_time'] ?? $existing['end_time']);
-    $location = trim($_POST['location'] ?? $existing['location']);
-    $organizer = trim($_POST['organizer'] ?? $existing['organizer']);
+    $title = trim($_POST['title'] ?? $jsonInput['title'] ?? $existing['title']);
+    $category = trim($_POST['category'] ?? $jsonInput['category'] ?? $existing['category']);
+    $description = trim($_POST['description'] ?? $jsonInput['description'] ?? $existing['description']);
+    $eventDate = trim($_POST['date'] ?? $_POST['event_date'] ?? $jsonInput['date'] ?? $jsonInput['event_date'] ?? $existing['event_date']);
+    $startTime = trim($_POST['start_time'] ?? $jsonInput['start_time'] ?? $existing['start_time']);
+    $endTime = trim($_POST['end_time'] ?? $jsonInput['end_time'] ?? $existing['end_time']);
+    $location = trim($_POST['location'] ?? $jsonInput['location'] ?? $existing['location']);
+    $organizer = trim($_POST['organizer'] ?? $jsonInput['organizer'] ?? $existing['organizer']);
 
     if ($title === '' || $eventDate === '') {
         out(['success' => false, 'error' => 'Event title and date cannot be empty.'], 400);
@@ -211,6 +241,8 @@ elseif ($action === 'update') {
         } else {
             out(['success' => false, 'error' => 'Failed to save uploaded image.'], 500);
         }
+    } elseif (!empty($_POST['image']) || !empty($jsonInput['image'])) {
+        $imagePath = trim($_POST['image'] ?? $jsonInput['image']);
     }
 
     $dateChanged = ($eventDate !== $existing['event_date']);
@@ -219,7 +251,6 @@ elseif ($action === 'update') {
     $uStmt = $db->prepare('UPDATE events SET title = ?, category = ?, description = ?, event_date = ?, start_time = ?, end_time = ?, location = ?, organizer = ?, image = ? WHERE id = ?');
     $uStmt->execute([$title, $category, $description, $eventDate, $startTime, $endTime, $location, $organizer, $imagePath, $existing['id']]);
 
-    // Section 12: Notify residents through the bell when significantly updated (e.g. date/time changed)
     if ($dateChanged || $timeChanged) {
         create_notification(
             "Event Schedule Update: {$title}",
@@ -255,11 +286,16 @@ elseif ($action === 'update') {
 elseif ($action === 'delete') {
     require_admin();
     $input = json_post();
-    $id = $input['id'] ?? $_GET['id'] ?? null;
+    $id = $input['id'] ?? $_POST['id'] ?? $jsonInput['id'] ?? $_GET['id'] ?? null;
 
     if ($id) {
-        $stmt = $db->prepare('DELETE FROM events WHERE id = ? OR event_code = ?');
-        $stmt->execute([$id, $id]);
+        if (is_numeric($id)) {
+            $stmt = $db->prepare('DELETE FROM events WHERE id = ? OR event_code = ?');
+            $stmt->execute([(int)$id, (string)$id]);
+        } else {
+            $stmt = $db->prepare('DELETE FROM events WHERE event_code = ?');
+            $stmt->execute([(string)$id]);
+        }
     }
 
     out(['success' => true]);

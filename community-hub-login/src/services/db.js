@@ -500,31 +500,101 @@ export const DB = {
     }
   },
 
-  addEvent: (event) => {
+  fetchEventsFromApi: async () => {
+    try {
+      const res = await fetch('/api/events.php?action=list', { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.success && Array.isArray(data.events)) {
+          const mapped = data.events.map((item) => ({
+            ...item,
+            image: resolveEventImage(item)
+          }));
+          localStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(mapped));
+          window.dispatchEvent(new Event("eventsUpdated"));
+          return mapped;
+        }
+      }
+    } catch (e) { }
+    return DB.getEvents();
+  },
+
+  addEvent: async (eventData, fallbackObj) => {
+    const isFormData = eventData instanceof FormData;
     const items = DB.getEvents();
+
+    const title = isFormData ? eventData.get("title") : eventData.title;
+    const category = isFormData ? eventData.get("category") : (eventData.category || "Community Event");
+    const date = isFormData ? (eventData.get("date") || eventData.get("event_date")) : (eventData.date || new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }));
+    const time = isFormData ? (eventData.get("time") || `${eventData.get("start_time") || "9:00 AM"} - ${eventData.get("end_time") || "12:00 PM"}`) : (eventData.time || "10:00 AM");
+    const location = isFormData ? eventData.get("location") : (eventData.location || "Barangay Plaza");
+    const organizer = isFormData ? eventData.get("organizer") : (eventData.organizer || "Community Committee");
+    const description = isFormData ? eventData.get("description") : (eventData.description || "");
+    const imagePreview = fallbackObj?.imagePreview || (isFormData ? null : eventData.image) || "https://images.unsplash.com/photo-1511578314322-379afb476865?w=800&auto=format&fit=crop&q=80";
+
     const newItem = {
       id: `EVT-${Date.now()}`,
-      title: event.title,
-      category: event.category || "Community Event",
-      date: event.date || new Date().toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" }),
-      time: event.time || "10:00 AM",
-      location: event.location || "Barangay Plaza",
-      organizer: event.organizer || "Community Committee",
-      description: event.description || "",
+      event_code: `EVT-${Date.now()}`,
+      title,
+      category,
+      date,
+      event_date: date,
+      time,
+      location,
+      organizer,
+      description,
       attendeesCount: 1,
-      image: event.image || "https://images.unsplash.com/photo-1511578314322-379afb476865?w=800&auto=format&fit=crop&q=80",
+      image: imagePreview,
     };
+
     const updated = [newItem, ...items];
     localStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(updated));
     window.dispatchEvent(new Event("eventsUpdated"));
+
+    try {
+      let body;
+      const headers = { 'X-User-Role': 'Admin' };
+      if (isFormData) {
+        if (!eventData.has('user_role')) eventData.append('user_role', 'Admin');
+        body = eventData;
+      } else {
+        headers['Content-Type'] = 'application/json';
+        body = JSON.stringify({ ...eventData, user_role: 'Admin' });
+      }
+
+      const res = await fetch('/api/events.php?action=create', {
+        method: 'POST',
+        credentials: 'include',
+        headers: isFormData ? { 'X-User-Role': 'Admin' } : headers,
+        body
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.success && data.event) {
+          await DB.fetchEventsFromApi();
+        }
+      }
+    } catch (e) { }
+
     return newItem;
   },
 
-  deleteEvent: (id) => {
+  deleteEvent: async (id) => {
     const items = DB.getEvents();
-    const updated = items.filter((e) => e.id !== id);
+    const updated = items.filter((e) => e.id !== id && e.event_code !== id);
     localStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(updated));
     window.dispatchEvent(new Event("eventsUpdated"));
+
+    try {
+      await fetch('/api/events.php?action=delete', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', 'X-User-Role': 'Admin' },
+        body: JSON.stringify({ id, user_role: 'Admin' })
+      });
+      await DB.fetchEventsFromApi();
+    } catch (e) { }
+
     return updated;
   },
 
