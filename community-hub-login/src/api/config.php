@@ -70,6 +70,18 @@ if (php_sapi_name() !== 'cli') {
 }
 
 // ---- Database Connection Config ----
+
+// Supabase PostgreSQL (PRIMARY - works from Render, no locking issues)
+$supabaseUrl    = getenv('SUPABASE_DB_URL')  ?: ($_ENV['SUPABASE_DB_URL']  ?? '');
+$supabasePass   = getenv('SUPABASE_DB_PASS') ?: ($_ENV['SUPABASE_DB_PASS'] ?? '');
+// Supabase project ref extracted from URL
+$supabaseRef    = 'nbkbijmelwlareisrwfl';
+$supabaseHost   = "db.{$supabaseRef}.supabase.co";
+$supabasePort   = '5432';
+$supabaseDbName = 'postgres';
+$supabaseUser   = 'postgres';
+
+// MySQL fallback
 $envHost = getenv('DB_HOST') ?: ($_ENV['DB_HOST'] ?? ($_SERVER['DB_HOST'] ?? ''));
 $envName = getenv('DB_NAME') ?: ($_ENV['DB_NAME'] ?? ($_SERVER['DB_NAME'] ?? ''));
 $envUser = getenv('DB_USER') ?: ($_ENV['DB_USER'] ?? ($_SERVER['DB_USER'] ?? ''));
@@ -80,12 +92,25 @@ $isLocalhost = in_array($_SERVER['SERVER_NAME'] ?? '', ['127.0.0.1', 'localhost'
 
 $db = null;
 
+// ── 0. Try Supabase PostgreSQL first ──────────────────────────
+if (!$isLocalhost && ($supabasePass !== '' || $supabaseUrl !== '')) {
+    $pgPass = $supabasePass ?: $supabaseUrl;
+    try {
+        $db = new PDO(
+            "pgsql:host={$supabaseHost};port={$supabasePort};dbname={$supabaseDbName};sslmode=require",
+            $supabaseUser, $pgPass,
+            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]
+        );
+        error_log('Connected to Supabase PostgreSQL');
+    } catch (Throwable $e) {
+        $db = null;
+        error_log('Supabase connection failed, trying MySQL: ' . $e->getMessage());
+    }
+}
+
+// MySQL config for fallback
 if ($isLocalhost && empty($envHost)) {
-    $dbHost = '127.0.0.1';
-    $dbName = 'login_system';
-    $dbUser = 'root';
-    $dbPass = '';
-    $dbPort = '3306';
+    $dbHost = '127.0.0.1'; $dbName = 'login_system'; $dbUser = 'root'; $dbPass = ''; $dbPort = '3306';
 } else {
     $dbHost = $envHost ?: 'sql302.infinityfree.com';
     $dbName = $envName ?: 'if0_43140654_login_system';
