@@ -479,21 +479,6 @@ export const DB = {
   },
 
   // Events API
-  fetchEventsFromApi: async () => {
-    try {
-      const res = await fetch('/api/events.php?action=list', { credentials: 'include' });
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.success && Array.isArray(data.events) && data.events.length > 0) {
-          localStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(data.events));
-          window.dispatchEvent(new Event("eventsUpdated"));
-          return data.events;
-        }
-      }
-    } catch (e) {}
-    return DB.getEvents();
-  },
-
   getEvents: () => {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.EVENTS);
@@ -515,7 +500,7 @@ export const DB = {
     }
   },
 
-  addEvent: async (event) => {
+  addEvent: (event) => {
     const items = DB.getEvents();
     const newItem = {
       id: `EVT-${Date.now()}`,
@@ -532,24 +517,6 @@ export const DB = {
     const updated = [newItem, ...items];
     localStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(updated));
     window.dispatchEvent(new Event("eventsUpdated"));
-
-    try {
-      const formData = new FormData();
-      formData.append("title", event.title);
-      formData.append("category", event.category || "Community");
-      formData.append("date", event.date || "");
-      formData.append("start_time", event.time || "9:00 AM");
-      formData.append("location", event.location || "Barangay Plaza");
-      formData.append("organizer", event.organizer || "Barangay Council");
-      formData.append("description", event.description || "");
-      await fetch('/api/events.php?action=create', {
-        method: 'POST',
-        credentials: 'include',
-        body: formData,
-      });
-      await DB.fetchEventsFromApi();
-    } catch (e) {}
-
     return newItem;
   },
 
@@ -558,16 +525,6 @@ export const DB = {
     const updated = items.filter((e) => e.id !== id);
     localStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(updated));
     window.dispatchEvent(new Event("eventsUpdated"));
-
-    try {
-      fetch('/api/events.php?action=delete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ id })
-      }).catch(() => {});
-    } catch (e) {}
-
     return updated;
   },
 
@@ -580,7 +537,14 @@ export const DB = {
         return INITIAL_RESIDENTS;
       }
       const parsed = JSON.parse(data);
-      return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_RESIDENTS;
+      // Clean up legacy non-database users if present
+      const knownUsernames = ["justinryan", "admin", "francis", "kyla", "testresident"];
+      const cleaned = parsed.filter((r) => {
+        const uName = (r.username || r.name || "").toLowerCase().replace(/\s+/g, "");
+        return knownUsernames.some(k => uName.includes(k) || k.includes(uName)) || r.id?.startsWith("user-");
+      });
+
+      return cleaned.length > 0 ? cleaned : INITIAL_RESIDENTS;
     } catch (e) {
       return INITIAL_RESIDENTS;
     }

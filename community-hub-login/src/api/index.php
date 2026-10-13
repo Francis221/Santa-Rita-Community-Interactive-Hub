@@ -17,10 +17,10 @@ echo json_encode([
     'server_time' => date('Y-m-d H:i:s'),
     'endpoints' => [
         '/api/login.php',
+        '/api/messages.php',
+        '/api/chats.php',
         '/api/friends.php',
         '/api/announcements.php',
-        '/api/events.php',
-        '/api/officials.php',
         '/api/reports.php',
         '/api/requests.php',
         '/api/online.php',

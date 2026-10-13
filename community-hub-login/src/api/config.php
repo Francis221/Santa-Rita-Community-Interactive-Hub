@@ -91,23 +91,30 @@ $isLocalhost = in_array($_SERVER['SERVER_NAME'] ?? '', ['127.0.0.1', 'localhost'
 
 $db = null;
 
-// ── 0. Try Supabase PostgreSQL first ──────────────────────────
-if (!$isLocalhost && ($supabasePass !== '' || $supabaseUrl !== '')) {
+// ── 0. Try Supabase PostgreSQL first (PRIMARY) ──────────────────────────
+if ($supabasePass !== '' || $supabaseUrl !== '') {
     $pgPass = $supabasePass ?: $supabaseUrl;
     try {
         $db = new PDO(
             "pgsql:host={$supabaseHost};port={$supabasePort};dbname={$supabaseDbName};sslmode=require",
             $supabaseUser, $pgPass,
-            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC]
+            [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_TIMEOUT => 5
+            ]
         );
-        error_log('Connected to Supabase PostgreSQL');
+        try { $db->exec("SET TIME ZONE 'Asia/Manila'"); } catch (Throwable $tzErr) {}
+        error_log('Connected to Supabase PostgreSQL successfully');
     } catch (Throwable $e) {
         $db = null;
-        error_log('Supabase connection failed, trying MySQL: ' . $e->getMessage());
+        error_log('Supabase PostgreSQL failed, trying MySQL: ' . $e->getMessage());
     }
 }
 
-// MySQL config for fallback
+// ── 1. MySQL fallback — only if Supabase did NOT connect ──────
+if (!$db) {
+
 if ($isLocalhost && empty($envHost)) {
     $dbHost = '127.0.0.1'; $dbName = 'login_system'; $dbUser = 'root'; $dbPass = ''; $dbPort = '3306';
 } else {
@@ -118,7 +125,6 @@ if ($isLocalhost && empty($envHost)) {
     $dbPort = $envPort ?: '3306';
 }
 
-// 1. Try MySQL Connection
 try {
     $db = new PDO("mysql:host={$dbHost};port={$dbPort};dbname={$dbName};charset=utf8mb4", $dbUser, $dbPass, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
@@ -331,6 +337,8 @@ try {
     $db = null;
     error_log('MySQL connection failed, falling back to SQLite: ' . $e->getMessage());
 }
+
+} // end if (!$db) — MySQL fallback block
 
 // 2. High-Availability SQLite Database Fallback
 if (!$db) {
