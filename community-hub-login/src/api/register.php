@@ -65,12 +65,14 @@ try {
 
     $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
     $savedAvatar = $photo;
-    $isSQLite = $db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite';
+    $driver = $db->getAttribute(PDO::ATTR_DRIVER_NAME);
+    $isSQLite = ($driver === 'sqlite');
+    $isPgSQL  = ($driver === 'pgsql');
 
-    // Serialize writes with an OS-level file lock (prevents race conditions between PHP workers)
+    // Serialize concurrent registrations with OS file lock
     $lockFile = sys_get_temp_dir() . '/db_write.lock';
     $lock = fopen($lockFile, 'w+');
-    if ($lock) flock($lock, LOCK_EX); // blocks until free — no timeout needed
+    if ($lock) flock($lock, LOCK_EX);
 
     $inserted = false;
     $lastError = null;
@@ -79,39 +81,52 @@ try {
     for ($attempt = 0; $attempt < 5; $attempt++) {
         try {
             if ($isSQLite) {
-                // BEGIN IMMEDIATE acquires the write lock upfront — prevents "database is locked"
                 $db->exec('BEGIN IMMEDIATE');
             } else {
                 $db->beginTransaction();
             }
 
-            try {
-                $stmt = $db->prepare("INSERT INTO users (username, email, password, role, avatar) VALUES (?, ?, ?, 'Resident', ?)");
+            if ($isPgSQL) {
+                // PostgreSQL: use RETURNING to get inserted ID reliably
+                $stmt = $db->prepare("INSERT INTO users (username, email, password, role, avatar) VALUES (?, ?, ?, 'Resident', ?) RETURNING id");
                 $stmt->execute([$username, $email, $hashedPassword, $photo]);
-            } catch (Throwable $colErr) {
-                // avatar column might not exist — try without it
-                $stmt = $db->prepare("INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, 'Resident')");
-                $stmt->execute([$username, $email, $hashedPassword]);
-                $savedAvatar = null;
+                $row = $stmt->fetch();
+                $newId = (int)($row['id'] ?? 0);
+            } else {
+                try {
+                    $stmt = $db->prepare("INSERT INTO users (username, email, password, role, avatar) VALUES (?, ?, ?, 'Resident', ?)");
+                    $stmt->execute([$username, $email, $hashedPassword, $photo]);
+                } catch (Throwable $colErr) {
+                    $stmt = $db->prepare("INSERT INTO users (username, email, password, role) VALUES (?, ?, ?, 'Resident')");
+                    $stmt->execute([$username, $email, $hashedPassword]);
+                    $savedAvatar = null;
+                }
+                $newId = (int)$db->lastInsertId();
             }
 
-            $newId = (int)$db->lastInsertId();
-            $db->exec('COMMIT');
+            if ($isSQLite) {
+                $db->exec('COMMIT');
+            } else {
+                $db->commit();
+            }
             $inserted = true;
             break;
 
         } catch (Throwable $ex) {
-            try { $db->exec('ROLLBACK'); } catch (Throwable $r) {}
+            try {
+                if ($isSQLite) { $db->exec('ROLLBACK'); } else { $db->rollBack(); }
+            } catch (Throwable $r) {}
             $lastError = $ex;
+            // Retry only on lock errors
             if (strpos($ex->getMessage(), 'locked') !== false && $attempt < 4) {
-                usleep(800000 * ($attempt + 1)); // 0.8s → 1.6s → 2.4s → 3.2s
+                usleep(800000 * ($attempt + 1));
                 continue;
             }
             break;
         }
     }
 
-    // Always release the file lock
+    // Release file lock
     if ($lock) { flock($lock, LOCK_UN); fclose($lock); }
 
     if (!$inserted) {
